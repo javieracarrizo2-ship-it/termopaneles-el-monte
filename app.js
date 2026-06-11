@@ -271,16 +271,10 @@ function applyFiltersAndSort() {
         switch (appState.sortBy) {
             case 'stock-desc':
                 return b.unidades - a.unidades;
-            case 'width-asc':
-                return a.ancho_cm - b.ancho_cm;
-            case 'width-desc':
-                return b.ancho_cm - a.ancho_cm;
-            case 'height-asc':
-                return a.alto_cm - b.alto_cm;
-            case 'height-desc':
-                return b.alto_cm - a.alto_cm;
             case 'area-asc':
                 return a.area - b.area;
+            case 'area-desc':
+                return b.area - a.area;
             default:
                 return b.unidades - a.unidades;
         }
@@ -1051,14 +1045,37 @@ function calculateClosestMatches(userWidth, userHeight) {
         };
     });
     
+    // Filter to keep only matches with a difference of up to 15cm in BOTH dimensions
+    const filteredMatches = scoredProducts.filter(match => {
+        return Math.abs(match.wDiff) <= 15 && Math.abs(match.hDiff) <= 15;
+    });
+    
     // Sort by total distance ascending
-    scoredProducts.sort((a, b) => a.totalDist - b.totalDist);
+    filteredMatches.sort((a, b) => a.totalDist - b.totalDist);
     
     // Take top 3
-    const topMatches = scoredProducts.slice(0, 3);
+    const topMatches = filteredMatches.slice(0, 3);
     
     // Render
     resultsContainer.innerHTML = '';
+    
+    if (filteredMatches.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="calc-no-results">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-low-stock)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <h3>Lo sentimos, no tenemos esa medida</h3>
+                <p>No disponemos de termopaneles en stock dentro del rango de diferencia de 15 cm de tu vano (${userWidth} x ${userHeight} cm).</p>
+                <div class="calc-no-results-actions">
+                    <a href="#catalog-section" class="calc-btn-secondary">Ver Catálogo Completo</a>
+                </div>
+            </div>
+        `;
+        return;
+    }
     
     topMatches.forEach(match => {
         const p = match.product;
