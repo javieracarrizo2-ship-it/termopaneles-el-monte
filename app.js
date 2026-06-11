@@ -60,6 +60,7 @@ async function initApp() {
     initCart();
     initMobileMenu();
     initStockCarousel();
+    initCalculator();
     await loadInventory();
 }
 
@@ -1004,4 +1005,95 @@ function initStockCarousel() {
     // Initialize
     updateIndicators();
     goToSlide(0);
+}
+
+// Initialize Calculator Logic for window frame (vano) comparison
+function initCalculator() {
+    const wInput = document.getElementById('vano-width');
+    const hInput = document.getElementById('vano-height');
+    const calcBtn = document.getElementById('calc-btn');
+    const resultsContainer = document.getElementById('calc-results');
+    
+    if (!wInput || !hInput || !calcBtn || !resultsContainer) return;
+    
+    calcBtn.addEventListener('click', () => {
+        const widthVal = parseFloat(wInput.value);
+        const heightVal = parseFloat(hInput.value);
+        
+        if (isNaN(widthVal) || isNaN(heightVal) || widthVal <= 0 || heightVal <= 0) {
+            alert('Por favor, ingresa un ancho y alto válidos en centímetros.');
+            return;
+        }
+        
+        if (appState.products.length === 0) {
+            alert('Cargando el inventario, por favor intenta en un momento.');
+            return;
+        }
+        
+        calculateClosestMatches(widthVal, heightVal);
+    });
+}
+
+function calculateClosestMatches(userWidth, userHeight) {
+    const resultsContainer = document.getElementById('calc-results');
+    if (!resultsContainer) return;
+    
+    // Calculate distance for each product (excluding 0 stock ones already filtered out)
+    const scoredProducts = appState.products.map(p => {
+        const wDiff = p.ancho_cm - userWidth;
+        const hDiff = p.alto_cm - userHeight;
+        const totalDist = Math.abs(wDiff) + Math.abs(hDiff);
+        return {
+            product: p,
+            wDiff,
+            hDiff,
+            totalDist
+        };
+    });
+    
+    // Sort by total distance ascending
+    scoredProducts.sort((a, b) => a.totalDist - b.totalDist);
+    
+    // Take top 3
+    const topMatches = scoredProducts.slice(0, 3);
+    
+    // Render
+    resultsContainer.innerHTML = '';
+    
+    topMatches.forEach(match => {
+        const p = match.product;
+        const card = document.createElement('div');
+        card.className = 'calc-result-card';
+        
+        // Helper to format diff tags
+        const formatDiff = (diff, axis) => {
+            const axisText = axis === 'w' ? 'ancho' : 'alto';
+            if (diff === 0) {
+                return `<span class="diff-tag exact">${axisText === 'ancho' ? 'Ancho exacto' : 'Alto exacto'}</span>`;
+            } else if (diff > 0) {
+                return `<span class="diff-tag plus">+${diff} cm (${axisText === 'ancho' ? 'más ancho' : 'más alto'})</span>`;
+            } else {
+                return `<span class="diff-tag minus">${diff} cm (${axisText === 'ancho' ? 'más angosto' : 'más bajo'})</span>`;
+            }
+        };
+        
+        const wTag = formatDiff(match.wDiff, 'w');
+        const hTag = formatDiff(match.hDiff, 'h');
+        
+        card.innerHTML = `
+            <div class="calc-result-header">
+                <h3 class="calc-result-title">${p.ancho_cm} x ${p.alto_cm} <span>cm</span></h3>
+                <span class="size-category-badge">${p.sizeCategory === 'chico' ? 'Chico' : (p.sizeCategory === 'mediano' ? 'Mediano' : 'Grande')}</span>
+            </div>
+            <div class="calc-diff-info">
+                ${wTag}
+                ${hTag}
+            </div>
+            <div class="calc-result-footer">
+                <span class="calc-stock-info">Stock: <strong>${p.unidades} u</strong></span>
+                <button class="calc-action-btn" onclick="buyProductDirectly('${p.id}')">Comprar Ahora</button>
+            </div>
+        `;
+        resultsContainer.appendChild(card);
+    });
 }
