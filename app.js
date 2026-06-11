@@ -316,8 +316,8 @@ function renderGrid() {
             grande: 'Grande'
         }[product.sizeCategory];
         
-        // WhatsApp URL prefilled
-        const whatsappUrl = generateWhatsAppLink(product.ancho_cm, product.alto_cm, product.forma);
+        
+        // Calculate relative scale percentages based on maximum dimensions
         
         // Calculate relative scale percentages based on maximum dimensions
         const maxWidth = appState.maxCatalogWidth || 140;
@@ -433,12 +433,12 @@ function renderGrid() {
             </div>
             
             <div class="product-actions">
-                <a href="${whatsappUrl}" target="_blank" rel="noopener" class="cta-button whatsapp" id="btn-quote-${product.id}">
+                <button onclick="buyProductDirectly('${product.id}')" class="cta-button whatsapp" id="btn-quote-${product.id}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
                         <path d="M12.031 2c-5.502 0-9.969 4.468-9.969 9.97 0 1.758.459 3.479 1.332 4.995L2 22l5.176-1.358c1.466.8 3.102 1.22 4.85 1.22h.004c5.502 0 9.969-4.467 9.969-9.969A9.92 9.92 0 0 0 12.031 2zm0 18.06h-.003c-1.558 0-3.085-.418-4.417-1.21l-.317-.188-3.284.861.876-3.2-.206-.328c-.87-1.385-1.33-2.988-1.33-4.636 0-4.693 3.82-8.513 8.517-8.513a8.44 8.44 0 0 1 6.021 2.496a8.44 8.44 0 0 1 2.493 6.024c.001 4.693-3.82 8.516-8.517 8.516zm4.665-6.381c-.255-.127-1.505-.742-1.738-.827-.233-.085-.403-.127-.572.127-.169.254-.656.828-.804.997-.148.17-.297.19-.552.063-.255-.127-.1.08-.1.08-1.077-.373-1.954-.954-2.73-1.628-.663-.576-1.11-1.288-1.24-1.542-.128-.255-.014-.393.114-.52.115-.115.255-.297.382-.445.127-.148.169-.254.254-.424.085-.17.042-.318-.021-.445-.064-.127-.572-1.377-.784-1.886-.207-.5-.436-.43-.572-.43-.148 0-.318-.008-.488-.008a.94.94 0 0 0-.678.318c-.233.255-.89.87-.89 2.123 0 1.254.912 2.463 1.04 2.632.127.17 1.795 2.748 4.348 3.85.607.262 1.081.42 1.45.538.61.194 1.165.166 1.603.1.488-.073 1.505-.615 1.717-1.208.212-.593.212-1.102.148-1.208-.063-.105-.233-.148-.488-.275z"/>
                     </svg>
-                    Cotización Rápida
-                </a>
+                    Comprar Ahora
+                </button>
                 <button class="cta-button add-to-cart-btn" onclick="addToCart('${product.id}')" id="btn-add-cart-${product.id}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -453,23 +453,31 @@ function renderGrid() {
     });
 }
 
-// Generate the WhatsApp URL with prefilled text formatting
-function generateWhatsAppLink(ancho, alto, forma) {
+// Direct purchase action on WhatsApp for a single product card
+window.buyProductDirectly = function(productId) {
+    const product = appState.products.find(p => p.id === productId);
+    if (!product) return;
+    
+    const qtyInput = document.getElementById(`qty-val-${productId}`);
+    const qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
+    
     let formaText = '';
-    if (forma === 'triangular') {
+    if (product.forma === 'triangular') {
         formaText = ' con forma triangular';
-    } else if (forma === 'trapezoidal') {
+    } else if (product.forma === 'trapezoidal') {
         formaText = ' con forma inclinada (trapecio)';
     }
-    const message = `Hola, quiero cotizar un termopanel fijo${formaText} de medida ${ancho} x ${alto} cm.
+    
+    const message = `Hola! Quiero comprar un termopanel fijo${formaText} de medida ${product.ancho_cm} x ${product.alto_cm} cm.
 
-Necesito cotizar ___ unidad(es).
+Necesito ${qty} unidad(es).
 
-Quedo atento/a al precio y disponibilidad actual. Gracias.`;
+Quedo atento/a para coordinar el retiro y pago. Gracias.`;
 
     const encodedText = encodeURIComponent(message);
-    return `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
-}
+    const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
+    window.open(whatsappUrl, '_blank');
+};
 
 // Render Stats at bottom of filters
 function renderStats() {
@@ -864,14 +872,14 @@ function checkoutCart() {
     const priceAppliedText = `$${pricing.unitPrice.toLocaleString('es-CL')} c/u`;
     const totalEstimatedText = `$${(totalUnits * pricing.unitPrice).toLocaleString('es-CL')}`;
 
-    const message = `Hola, quiero cotizar los siguientes termopaneles:
+    const message = `Hola, quiero comprar los siguientes termopaneles:
 
 ${itemsText}
 Total unidades: ${totalUnits}
 Precio unitario aplicado: ${priceAppliedText}
 Total: ${totalEstimatedText}
 
-Retiro exclusivo en sucursal (El Monte). Pago mediante transferencia o efectivo.`;
+Retiro en bodega (El Monte). Pago mediante transferencia o efectivo.`;
 
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
