@@ -468,9 +468,10 @@ window.buyProductDirectly = function(productId) {
         formaText = ' con forma inclinada (trapecio)';
     }
     
+    const unitWord = qty === 1 ? 'unidad' : 'unidades';
     const message = `Hola! Quiero comprar un termopanel fijo${formaText} de medida ${product.ancho_cm} x ${product.alto_cm} cm.
 
-Necesito ${qty} unidad(es).
+Necesito ${qty} ${unitWord}.
 
 Quedo atento/a para coordinar el retiro y pago. Gracias.`;
 
@@ -866,20 +867,21 @@ function checkoutCart() {
         const isTriangular = item.forma === 'triangular';
         const isTrapezoidal = item.forma === 'trapezoidal';
         const shapeText = isTriangular ? ' triangular' : (isTrapezoidal ? ' inclinada (trapecio)' : '');
-        itemsText += `* ${item.qty} unidad(es) de medida ${item.medida_cm}${shapeText}\n`;
+        const unitWord = item.qty === 1 ? 'unidad' : 'unidades';
+        itemsText += `* ${item.qty} ${unitWord} de medida ${item.medida_cm}${shapeText}\n`;
     });
 
     const priceAppliedText = `$${pricing.unitPrice.toLocaleString('es-CL')} c/u`;
-    const totalEstimatedText = `$${(totalUnits * pricing.unitPrice).toLocaleString('es-CL')}`;
+    const totalEstimatedText = `$${(totalUnits * pricing.priceLabel).toLocaleString('es-CL')}`; // Wait, pricing.totalEstimated or use custom calculation
+    const totalCalc = totalUnits * pricing.unitPrice;
+    const totalCalcText = `$${totalCalc.toLocaleString('es-CL')}`;
 
     const message = `Hola, quiero comprar los siguientes termopaneles:
 
 ${itemsText}
 Total unidades: ${totalUnits}
 Precio unitario aplicado: ${priceAppliedText}
-Total: ${totalEstimatedText}
-
-Retiro en bodega (El Monte). Pago mediante transferencia o efectivo.`;
+Total: ${totalCalcText}`;
 
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;

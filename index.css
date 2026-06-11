@@ -73,15 +73,14 @@ h1, h2, h3, h4 {
     padding: 10px 16px;
     font-size: 0.9rem;
     font-weight: 600;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    position: relative; /* Default non-sticky for mobile, scrolls away */
     box-shadow: var(--shadow-sm);
     backdrop-filter: blur(8px);
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 8px;
+    z-index: 100;
 }
 
 .sticky-alert svg {
@@ -95,10 +94,20 @@ header {
     border-bottom: 1px solid rgba(0,0,0,0.05);
     padding: 12px 0; /* thinner navigation footprint */
     position: sticky;
-    top: 39px; /* matches the alert bar height */
+    top: 0; /* Stays sticky at the very top of mobile viewport */
     z-index: 90;
     box-shadow: var(--shadow-sm);
     transition: var(--transition-smooth);
+}
+
+@media (min-width: 769px) {
+    .sticky-alert {
+        position: sticky;
+        top: 0;
+    }
+    header {
+        top: 41px; /* Align below alert bar on desktop only */
+    }
 }
 
 .header-container {
