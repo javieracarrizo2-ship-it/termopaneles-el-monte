@@ -17,7 +17,7 @@ let appState = {
     filteredProducts: [],
     activeCategory: 'all',
     searchQuery: '',
-    sortBy: 'stock-desc',
+    sortBy: 'dimensions-similar',
     cart: [],
     maxCatalogWidth: 120,
     maxCatalogHeight: 220
@@ -292,6 +292,15 @@ function applyFiltersAndSort() {
     // 3. Sort list
     list.sort((a, b) => {
         switch (appState.sortBy) {
+            case 'dimensions-similar':
+                const minA = Math.min(a.ancho_cm, a.alto_cm);
+                const minB = Math.min(b.ancho_cm, b.alto_cm);
+                if (Math.abs(minA - minB) > 0.001) {
+                    return minA - minB;
+                }
+                const maxA = Math.max(a.ancho_cm, a.alto_cm);
+                const maxB = Math.max(b.ancho_cm, b.alto_cm);
+                return maxA - maxB;
             case 'stock-desc':
                 return b.unidades - a.unidades;
             case 'area-asc':
@@ -299,7 +308,14 @@ function applyFiltersAndSort() {
             case 'area-desc':
                 return b.area - a.area;
             default:
-                return b.unidades - a.unidades;
+                const dMinA = Math.min(a.ancho_cm, a.alto_cm);
+                const dMinB = Math.min(b.ancho_cm, b.alto_cm);
+                if (Math.abs(dMinA - dMinB) > 0.001) {
+                    return dMinA - dMinB;
+                }
+                const dMaxA = Math.max(a.ancho_cm, a.alto_cm);
+                const dMaxB = Math.max(b.ancho_cm, b.alto_cm);
+                return dMaxA - dMaxB;
         }
     });
     
