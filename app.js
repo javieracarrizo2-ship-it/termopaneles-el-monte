@@ -6,6 +6,7 @@
 // Configuration
 const CONFIG = {
     csvPath: 'inventario-termopaneles-landing.csv',
+    googleSheetUrl: '', // Pega aquí el enlace de Google Sheets publicado como CSV
     whatsappNumber: '56977445451', // Chilean business WhatsApp number (+56 9 ...)
     lowStockThreshold: 5
 };
@@ -104,10 +105,32 @@ function setupEventListeners() {
 // Load Inventory CSV
 async function loadInventory() {
     showLoader(true);
+    let response;
+    let loadedFromSheet = false;
+    
     try {
-        const response = await fetch(CONFIG.csvPath);
-        if (!response.ok) {
-            throw new Error(`No se pudo cargar el archivo de inventario (${response.status})`);
+        // Intenta cargar desde Google Sheets si está configurado
+        if (CONFIG.googleSheetUrl) {
+            try {
+                response = await fetch(CONFIG.googleSheetUrl);
+                if (response.ok) {
+                    loadedFromSheet = true;
+                    console.log('Inventario cargado exitosamente desde Google Sheets');
+                } else {
+                    console.warn(`Google Sheets retornó estado ${response.status}. Usando respaldo local.`);
+                }
+            } catch (sheetError) {
+                console.warn('Error al conectar con Google Sheets. Usando respaldo local:', sheetError);
+            }
+        }
+        
+        // Si no hay respuesta o falló, usa el archivo local
+        if (!response || !response.ok) {
+            response = await fetch(CONFIG.csvPath);
+            if (!response.ok) {
+                throw new Error(`No se pudo cargar el archivo de inventario (${response.status})`);
+            }
+            console.log('Inventario cargado desde archivo local CSV');
         }
         
         const csvText = await response.text();
