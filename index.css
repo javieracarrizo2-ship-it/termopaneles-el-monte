@@ -679,130 +679,6 @@ header {
     color: var(--color-text-muted);
 }
 
-/* Inspiration Section Styles (Customer Project & AI Proposal) */
-.inspiration-section {
-    max-width: 1200px;
-    margin: 0 auto 80px;
-    padding: 0 24px;
-}
-
-.inspiration-header {
-    text-align: center;
-    margin-bottom: 40px;
-}
-
-.inspiration-tag {
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--color-sand-dark);
-    letter-spacing: 1.5px;
-    margin-bottom: 12px;
-    display: inline-block;
-}
-
-.inspiration-header h2 {
-    font-size: 2rem;
-    color: var(--color-text-primary);
-    margin-bottom: 16px;
-}
-
-.inspiration-header p {
-    color: var(--color-text-muted);
-    font-size: 1rem;
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.inspiration-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 30px;
-}
-
-@media (min-width: 768px) {
-    .inspiration-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-.inspiration-card {
-    background-color: #fff;
-    border-radius: 20px;
-    border: 1px solid rgba(0,0,0,0.04);
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    transition: var(--transition-smooth);
-}
-
-.inspiration-card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-lg);
-}
-
-.inspiration-img-wrapper {
-    position: relative;
-    height: 380px;
-    overflow: hidden;
-}
-
-.inspiration-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: var(--transition-smooth);
-}
-
-.inspiration-card:hover .inspiration-img {
-    transform: scale(1.03);
-}
-
-.img-label-badge {
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    padding: 6px 14px;
-    border-radius: var(--border-radius-pill);
-    font-size: 0.8rem;
-    font-weight: 700;
-    box-shadow: var(--shadow-sm);
-    z-index: 10;
-}
-
-.badge-original {
-    background-color: rgba(30, 41, 59, 0.85); /* Dark slate */
-    color: #fff;
-    backdrop-filter: blur(8px);
-}
-
-.badge-premium {
-    background-color: rgba(85, 107, 47, 0.95); /* Olive green */
-    color: #fff;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.inspiration-card-content {
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-}
-
-.inspiration-card-content h3 {
-    font-size: 1.3rem;
-    color: var(--color-text-primary);
-    margin-bottom: 8px;
-}
-
-.inspiration-card-content p {
-    color: var(--color-text-muted);
-    font-size: 0.95rem;
-    line-height: 1.5;
-}
 
 /* 3. Main Info Block (Logistics Alert Section) */
 .info-section {
@@ -1875,15 +1751,32 @@ footer {
     line-height: 1.6;
 }
 
-/* Info Box below steps */
 .how-to-buy-info-box {
     background: linear-gradient(135deg, #fdfbf7 0%, #faf8f4 100%);
     border: 1px solid rgba(222, 184, 135, 0.25);
     border-radius: 20px;
     padding: 45px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.01);
-    max-width: 600px;
+    max-width: 900px;
     margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 30px;
+}
+
+@media (min-width: 768px) {
+    .how-to-buy-info-box {
+        grid-template-columns: 1fr 1.2fr;
+        align-items: center;
+    }
+}
+
+.specs-info-img {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    display: block;
 }
 
 .info-box-column h4 {
