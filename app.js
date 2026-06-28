@@ -471,7 +471,7 @@ function renderGrid() {
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
                         <path d="M12.031 2c-5.502 0-9.969 4.468-9.969 9.97 0 1.758.459 3.479 1.332 4.995L2 22l5.176-1.358c1.466.8 3.102 1.22 4.85 1.22h.004c5.502 0 9.969-4.467 9.969-9.969A9.92 9.92 0 0 0 12.031 2zm0 18.06h-.003c-1.558 0-3.085-.418-4.417-1.21l-.317-.188-3.284.861.876-3.2-.206-.328c-.87-1.385-1.33-2.988-1.33-4.636 0-4.693 3.82-8.513 8.517-8.513a8.44 8.44 0 0 1 6.021 2.496a8.44 8.44 0 0 1 2.493 6.024c.001 4.693-3.82 8.516-8.517 8.516zm4.665-6.381c-.255-.127-1.505-.742-1.738-.827-.233-.085-.403-.127-.572.127-.169.254-.656.828-.804.997-.148.17-.297.19-.552.063-.255-.127-.1.08-.1.08-1.077-.373-1.954-.954-2.73-1.628-.663-.576-1.11-1.288-1.24-1.542-.128-.255-.014-.393.114-.52.115-.115.255-.297.382-.445.127-.148.169-.254.254-.424.085-.17.042-.318-.021-.445-.064-.127-.572-1.377-.784-1.886-.207-.5-.436-.43-.572-.43-.148 0-.318-.008-.488-.008a.94.94 0 0 0-.678.318c-.233.255-.89.87-.89 2.123 0 1.254.912 2.463 1.04 2.632.127.17 1.795 2.748 4.348 3.85.607.262 1.081.42 1.45.538.61.194 1.165.166 1.603.1.488-.073 1.505-.615 1.717-1.208.212-.593.212-1.102.148-1.208-.063-.105-.233-.148-.488-.275z"/>
                     </svg>
-                    Comprar Ahora
+                    Cotizar por WhatsApp
                 </button>
                 <button class="cta-button add-to-cart-btn" onclick="addToCart('${product.id}')" id="btn-add-cart-${product.id}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -502,12 +502,11 @@ window.buyProductDirectly = function(productId) {
         formaText = ' con forma inclinada (trapecio)';
     }
     
-    const unitWord = qty === 1 ? 'unidad' : 'unidades';
-    const message = `Hola! Quiero comprar un termopanel fijo${formaText} de medida ${product.ancho_cm} x ${product.alto_cm} cm.
+    const message = `Hola, quiero cotizar un termopanel fijo de medida ${product.ancho_cm} x ${product.alto_cm} cm.
 
-Necesito ${qty} ${unitWord}.
+Necesito cotizar ${qty} unidad(es).
 
-Quedo atento/a para coordinar el retiro y pago. Gracias.`;
+Quedo atento/a al precio y disponibilidad actual. Gracias.`;
 
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
@@ -910,7 +909,7 @@ function checkoutCart() {
     const totalCalc = totalUnits * pricing.unitPrice;
     const totalCalcText = `$${totalCalc.toLocaleString('es-CL')}`;
 
-    const message = `Hola, quiero comprar los siguientes termopaneles:
+    const message = `Hola, quiero cotizar los siguientes termopaneles:
 
 ${itemsText}
 Total unidades: ${totalUnits}
@@ -1147,7 +1146,7 @@ function calculateClosestMatches(userWidth, userHeight) {
             </div>
             <div class="calc-result-footer">
                 <span class="calc-stock-info">Stock: <strong>${p.unidades} u</strong></span>
-                <button class="calc-action-btn" onclick="buyProductDirectly('${p.id}')">Comprar Ahora</button>
+                <button class="calc-action-btn" onclick="buyProductDirectly('${p.id}')">Cotizar por WhatsApp</button>
             </div>
         `;
         resultsContainer.appendChild(card);
