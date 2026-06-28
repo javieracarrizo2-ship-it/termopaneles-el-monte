@@ -1751,45 +1751,139 @@ footer {
     line-height: 1.6;
 }
 
-.specs-gallery-wrapper {
-    margin-top: 25px;
+/* ==========================================================================
+   Specs Section (Composición del termopanel)
+   ========================================================================== */
+.specs-section {
+    padding: 60px 24px;
+    background-color: #ffffff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.02);
+}
+
+.specs-container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.specs-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+    align-items: center;
+}
+
+@media (min-width: 768px) {
+    .specs-grid {
+        grid-template-columns: 1fr 1.1fr;
+        gap: 60px;
+    }
+}
+
+.specs-image-wrapper {
     background-color: var(--color-bg);
-    border: 1px solid rgba(0, 0, 0, 0.04);
-    border-radius: 16px;
-    padding: 24px;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    border-radius: 20px;
+    padding: 30px;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
     box-shadow: var(--shadow-sm);
-    transition: var(--transition-smooth);
-}
-
-.specs-gallery-wrapper:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-.specs-gallery-wrapper h4 {
-    font-size: 1.05rem;
-    color: var(--color-text-primary);
-    margin-bottom: 16px !important;
-    text-align: center;
-    font-weight: 700;
-}
-
-.specs-gallery-img {
-    width: 100%;
-    max-width: 320px;
-    height: auto;
-    border-radius: 8px;
-    display: block;
+    max-width: 480px;
     margin: 0 auto;
+    width: 100%;
+}
+
+.specs-diagram-img {
+    width: 100%;
+    max-width: 380px;
+    height: auto;
+    border-radius: 12px;
+    display: block;
     transition: var(--transition-smooth);
 }
 
-.specs-gallery-img:hover {
-    transform: scale(1.02);
+.specs-diagram-img:hover {
+    transform: scale(1.03);
 }
+
+.specs-content-wrapper {
+    text-align: left;
+}
+
+@media (max-width: 767px) {
+    .specs-content-wrapper {
+        text-align: center;
+    }
+}
+
+.specs-tag {
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-olive);
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    display: inline-block;
+}
+
+.specs-content-wrapper h2 {
+    font-size: 2.2rem;
+    color: var(--color-text-primary);
+    margin-bottom: 20px;
+    letter-spacing: -0.02em;
+}
+
+.specs-description {
+    font-size: 1.05rem;
+    color: var(--color-text-muted);
+    line-height: 1.7;
+    margin-bottom: 30px;
+}
+
+.specs-chips {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+@media (max-width: 767px) {
+    .specs-chips {
+        align-items: center;
+    }
+}
+
+.spec-chip {
+    background-color: var(--color-bg);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow-sm);
+    width: fit-content;
+    transition: var(--transition-smooth);
+}
+
+.spec-chip:hover {
+    transform: translateX(4px);
+    border-color: var(--color-sand-dark);
+}
+
+@media (max-width: 767px) {
+    .spec-chip:hover {
+        transform: translateY(-2px);
+    }
+}
+
+.chip-icon {
+    font-size: 1rem;
+    color: var(--color-olive);
+}
+
 
 .info-box-column h4 {
     font-size: 1.25rem;
