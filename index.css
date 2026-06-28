@@ -1755,9 +1755,9 @@ footer {
     background: linear-gradient(135deg, #fdfbf7 0%, #faf8f4 100%);
     border: 1px solid rgba(222, 184, 135, 0.25);
     border-radius: 20px;
-    padding: 45px;
+    padding: 40px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.01);
-    max-width: 900px;
+    max-width: 950px;
     margin: 0 auto;
     display: grid;
     grid-template-columns: 1fr;
@@ -1766,17 +1766,38 @@ footer {
 
 @media (min-width: 768px) {
     .how-to-buy-info-box {
-        grid-template-columns: 1fr 1.2fr;
-        align-items: center;
+        grid-template-columns: 1.1fr 1fr;
+        align-items: stretch;
     }
+}
+
+.specs-box-column {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.specs-box-column h4 {
+    margin-bottom: 12px !important;
 }
 
 .specs-info-img {
     width: 100%;
+    max-width: 320px;
     height: auto;
-    border-radius: 12px;
-    box-shadow: var(--shadow-sm);
+    border-radius: 8px;
     display: block;
+    margin: 0 auto;
+    transition: var(--transition-smooth);
+}
+
+.specs-info-img:hover {
+    transform: scale(1.02);
 }
 
 .info-box-column h4 {
