@@ -1751,44 +1751,35 @@ footer {
     line-height: 1.6;
 }
 
-.how-to-buy-info-box {
-    background: linear-gradient(135deg, #fdfbf7 0%, #faf8f4 100%);
-    border: 1px solid rgba(222, 184, 135, 0.25);
-    border-radius: 20px;
-    padding: 40px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.01);
-    max-width: 650px;
-    margin: 0 auto;
-}
-
-.specs-box-column {
-    background: #ffffff;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+.specs-gallery-wrapper {
+    margin-top: 25px;
+    background-color: var(--color-bg);
+    border: 1px solid rgba(0, 0, 0, 0.04);
     border-radius: 16px;
-    padding: 30px;
-    box-shadow: var(--shadow-sm);
+    padding: 24px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    box-shadow: var(--shadow-sm);
     transition: var(--transition-smooth);
 }
 
-.specs-box-column:hover {
+.specs-gallery-wrapper:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
 }
 
-.specs-box-column h4 {
-    text-align: center;
-    margin-bottom: 20px !important;
-    font-size: 1.2rem;
+.specs-gallery-wrapper h4 {
+    font-size: 1.05rem;
     color: var(--color-text-primary);
+    margin-bottom: 16px !important;
+    text-align: center;
+    font-weight: 700;
 }
 
-.specs-info-img {
+.specs-gallery-img {
     width: 100%;
-    max-width: 420px;
+    max-width: 320px;
     height: auto;
     border-radius: 8px;
     display: block;
@@ -1796,7 +1787,7 @@ footer {
     transition: var(--transition-smooth);
 }
 
-.specs-info-img:hover {
+.specs-gallery-img:hover {
     transform: scale(1.02);
 }
 
