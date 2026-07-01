@@ -36,6 +36,7 @@
             <nav class="nav-menu" id="nav-menu">
                 <a href="#hero-section" class="nav-link">Inicio</a>
                 <a href="#calculator-section" class="nav-link">Calculadora</a>
+                <a href="#planner-section" class="nav-link">Planificador</a>
                 <a href="#catalog-section" class="nav-link">Inventario</a>
                 <a href="#how-to-buy-section" class="nav-link">Cómo comprar</a>
                 <a href="#location-section" class="nav-link">Ubicación</a>
@@ -118,6 +119,67 @@
                             <line x1="3" y1="15" x2="21" y2="15"></line>
                         </svg>
                         <p>Ingresa las medidas a la izquierda para ver las alternativas recomendadas.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3a. Coverage Planner Section (Planificador de Cobertura) -->
+    <section class="planner-section" id="planner-section">
+        <div class="planner-container">
+            <div class="section-header">
+                <span class="planner-tag">Herramienta Avanzada</span>
+                <h2>Planificador de Cobertura</h2>
+                <p>Ingresa las dimensiones totales del espacio que deseas cerrar (vano, terraza, quincho, bodega u oficina) y sugeriremos una distribución aproximada con el stock disponible.</p>
+            </div>
+
+            <div class="planner-card">
+                <div class="planner-form">
+                    <div class="calc-input-group">
+                        <label for="planner-width">Ancho total del espacio (cm)</label>
+                        <input type="number" id="planner-width" min="10" max="1000" placeholder="Ej: 300" required>
+                    </div>
+                    <div class="calc-input-group">
+                        <label for="planner-height">Alto total del espacio (cm)</label>
+                        <input type="number" id="planner-height" min="10" max="500" placeholder="Ej: 240" required>
+                    </div>
+                    <div class="calc-input-group">
+                        <label for="planner-panes">Cantidad de paños (opcional)</label>
+                        <input type="number" id="planner-panes" min="1" max="10" placeholder="Cualquier cantidad">
+                    </div>
+                    <div class="calc-input-group">
+                        <label for="planner-tolerance">Tolerancia de diferencia máxima</label>
+                        <select id="planner-tolerance">
+                            <option value="2">2 cm</option>
+                            <option value="5" selected>5 cm</option>
+                            <option value="10">10 cm</option>
+                            <option value="20">20 cm</option>
+                        </select>
+                    </div>
+                    <div class="calc-checkbox-group">
+                        <input type="checkbox" id="planner-rotation">
+                        <label for="planner-rotation">Permitir girar termopaneles (cambiar orientación)</label>
+                    </div>
+                    <button class="calc-btn" id="planner-btn">Calcular Distribución</button>
+                </div>
+
+                <div class="planner-results-wrapper">
+                    <!-- Security Warning Alert -->
+                    <div class="planner-warning-alert">
+                        <span class="warning-icon">⚠️</span>
+                        <p>Esta herramienta entrega alternativas referenciales según las medidas disponibles en stock. Antes de comprar, verifica con tu instalador las holguras, perfiles, estructura, fijaciones y sistema de instalación.</p>
+                    </div>
+
+                    <div class="planner-results" id="planner-results">
+                        <div class="calc-placeholder">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="9" y1="3" x2="9" y2="21"></line>
+                                <line x1="15" y1="3" x2="15" y2="21"></line>
+                            </svg>
+                            <p>Ingresa las dimensiones y preferencias a la izquierda para diseñar una distribución referencial.</p>
+                        </div>
                     </div>
                 </div>
             </div>

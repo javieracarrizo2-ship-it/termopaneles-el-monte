@@ -62,6 +62,7 @@ async function initApp() {
     initMobileMenu();
     initStockCarousel();
     initCalculator();
+    initPlanner();
     await loadInventory();
 }
 
@@ -1152,3 +1153,569 @@ function calculateClosestMatches(userWidth, userHeight) {
         resultsContainer.appendChild(card);
     });
 }
+
+// ==========================================================================
+// Planificador de Cobertura Implementation
+// ==========================================================================
+
+// Initialize Coverage Planner tool
+function initPlanner() {
+    const wInput = document.getElementById('planner-width');
+    const hInput = document.getElementById('planner-height');
+    const pInput = document.getElementById('planner-panes');
+    const tSelect = document.getElementById('planner-tolerance');
+    const rCheckbox = document.getElementById('planner-rotation');
+    const plannerBtn = document.getElementById('planner-btn');
+    const resultsContainer = document.getElementById('planner-results');
+
+    if (!wInput || !hInput || !plannerBtn || !resultsContainer) return;
+
+    plannerBtn.addEventListener('click', () => {
+        const widthVal = parseFloat(wInput.value);
+        const heightVal = parseFloat(hInput.value);
+        const panesVal = pInput.value ? parseInt(pInput.value, 10) : null;
+        const toleranceVal = parseFloat(tSelect.value);
+        const allowRotation = rCheckbox.checked;
+
+        if (isNaN(widthVal) || isNaN(heightVal) || widthVal <= 0 || heightVal <= 0) {
+            alert('Por favor, ingresa un ancho y alto válidos en centímetros.');
+            return;
+        }
+
+        if (panesVal !== null && (isNaN(panesVal) || panesVal <= 0)) {
+            alert('Por favor, ingresa una cantidad de paños válida o déjala vacía.');
+            return;
+        }
+
+        // Show loading state
+        resultsContainer.innerHTML = `
+            <div class="calc-placeholder">
+                <p>Calculando la mejor distribución para ${widthVal} × ${heightVal} cm...</p>
+            </div>
+        `;
+
+        // Search in a microtask/timeout to allow DOM thread updating
+        setTimeout(() => {
+            const proposals = findCoverageCombinations(widthVal, heightVal, panesVal, allowRotation, toleranceVal, appState.products);
+            renderPlannerProposals(proposals, widthVal, heightVal, resultsContainer);
+        }, 100);
+    });
+}
+
+// Algoritmo de Cobertura
+function findCoverageCombinations(targetW, targetH, targetPanes, allowRotation, tolerance, inventory) {
+    // 1. Considerar solo productos con stock > 0
+    const availableItems = inventory.filter(item => item.unidades > 0);
+
+    // 2. Identificar alturas de termopaneles elegibles (dentro de la tolerancia)
+    const eligibleHeights = new Set();
+    availableItems.forEach(item => {
+        if (Math.abs(item.alto_cm - targetH) <= tolerance) {
+            eligibleHeights.add(item.alto_cm);
+        }
+        if (allowRotation && Math.abs(item.ancho_cm - targetH) <= tolerance) {
+            eligibleHeights.add(item.ancho_cm);
+        }
+    });
+
+    const proposals = [];
+
+    // 3. Buscar combinaciones de anchos por cada altura elegible
+    eligibleHeights.forEach(h => {
+        const eligibleProducts = [];
+        availableItems.forEach(item => {
+            let matchesNormal = Math.abs(item.alto_cm - h) < 0.01;
+            let matchesRotated = allowRotation && Math.abs(item.ancho_cm - h) < 0.01;
+
+            if (matchesNormal || matchesRotated) {
+                if (matchesNormal) {
+                    eligibleProducts.push({
+                        product: item,
+                        width: item.ancho_cm,
+                        height: item.alto_cm,
+                        rotated: false,
+                        id: `${item.id}-N`
+                    });
+                }
+                if (matchesRotated && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
+                    eligibleProducts.push({
+                        product: item,
+                        width: item.alto_cm,
+                        height: item.ancho_cm,
+                        rotated: true,
+                        id: `${item.id}-R`
+                    });
+                }
+            }
+        });
+
+        if (eligibleProducts.length === 0) return;
+
+        const minPanes = targetPanes ? targetPanes : 1;
+        const maxPanes = targetPanes ? targetPanes : 6;
+
+        const results = [];
+        
+        // Depth-First Search for width combinations
+        function dfs(index, currentCombo, currentSum, productUsage) {
+            const diff = currentSum - targetW;
+            if (Math.abs(diff) <= tolerance && currentCombo.length >= minPanes && currentCombo.length <= maxPanes) {
+                results.push({
+                    height: h,
+                    panes: [...currentCombo],
+                    totalWidth: currentSum,
+                    widthDiff: diff
+                });
+            }
+
+            if (currentCombo.length >= maxPanes || currentSum > targetW + tolerance) {
+                return;
+            }
+
+            for (let i = index; i < eligibleProducts.length; i++) {
+                const ep = eligibleProducts[i];
+                const pId = ep.product.id;
+                const used = productUsage[pId] || 0;
+
+                if (used < ep.product.unidades) {
+                    productUsage[pId] = used + 1;
+                    currentCombo.push(ep);
+                    
+                    dfs(i, currentCombo, currentSum + ep.width, productUsage);
+                    
+                    currentCombo.pop();
+                    productUsage[pId] = used;
+                }
+            }
+        }
+
+        dfs(0, [], 0, {});
+
+        results.forEach(res => {
+            proposals.push(res);
+        });
+    });
+
+    // 4. Filtrar propuestas duplicadas
+    const uniqueProposals = [];
+    const seenCombos = new Set();
+
+    proposals.forEach(prop => {
+        // Ordenar los IDs para que el orden de las piezas no genere duplicados semánticos
+        const key = prop.height + '_' + prop.panes.map(p => p.id).sort().join('|');
+        if (!seenCombos.has(key)) {
+            seenCombos.add(key);
+            uniqueProposals.push(prop);
+        }
+    });
+
+    // 5. Puntuación y ordenamiento
+    uniqueProposals.forEach(prop => {
+        prop.heightDiff = prop.height - targetH;
+        prop.totalHeight = prop.height;
+        prop.areaCovered = (prop.totalWidth * prop.totalHeight) / 10000;
+        prop.unitCount = prop.panes.length;
+        
+        const unitPrice = getCartPricing(prop.unitCount).unitPrice;
+        prop.totalPrice = prop.unitCount * unitPrice;
+        
+        // Menores desvíos y menos paneles se priorizan
+        prop.score = Math.abs(prop.heightDiff) * 2.5 + Math.abs(prop.widthDiff) + (prop.unitCount * 0.2);
+    });
+
+    // Ordenar de mejor a peor
+    uniqueProposals.sort((a, b) => a.score - b.score);
+
+    return uniqueProposals.slice(0, 3);
+}
+
+// Renderizar propuestas
+function renderPlannerProposals(proposals, targetW, targetH, container) {
+    if (proposals.length === 0) {
+        container.innerHTML = `
+            <div class="calc-no-results">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                <h3>Sin combinaciones disponibles</h3>
+                <p>No encontramos una combinación cercana con el stock actual. Puedes revisar medidas similares o cotizar por WhatsApp.</p>
+                <div class="calc-no-results-actions">
+                    <a href="https://wa.me/56977445451" target="_blank" class="calc-btn-whatsapp">Cotizar por WhatsApp</a>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = '';
+
+    const grid = document.createElement('div');
+    grid.className = 'planner-proposals-grid';
+
+    proposals.forEach((prop, index) => {
+        const card = document.createElement('div');
+        card.className = 'proposal-card';
+
+        const ranks = ['Alternativa 1 (Recomendada)', 'Alternativa 2', 'Alternativa 3'];
+        const rankText = ranks[index] || `Alternativa ${index + 1}`;
+
+        // Contabilizar cantidades por producto
+        const productCounts = {};
+        prop.panes.forEach(pane => {
+            const key = pane.product.id + (pane.rotated ? '_R' : '_N');
+            if (!productCounts[key]) {
+                productCounts[key] = {
+                    product: pane.product,
+                    width: pane.width,
+                    height: pane.height,
+                    rotated: pane.rotated,
+                    qty: 0
+                };
+            }
+            productCounts[key].qty++;
+        });
+
+        let productsListHtml = '';
+        Object.values(productCounts).forEach(item => {
+            const rotText = item.rotated ? ' (Girado)' : '';
+            productsListHtml += `
+                <li>
+                    <span>${item.qty} u × ${item.product.medida_cm}${rotText}</span>
+                    <strong>Stock: ${item.product.unidades} u</strong>
+                </li>
+            `;
+        });
+
+        const wDiffSymbol = prop.widthDiff >= 0 ? '+' : '';
+        const hDiffSymbol = prop.heightDiff >= 0 ? '+' : '';
+        
+        const wDiffText = prop.widthDiff === 0 ? 'Exacto' : `${wDiffSymbol}${prop.widthDiff.toFixed(1)} cm`;
+        const hDiffText = prop.heightDiff === 0 ? 'Exacto' : `${hDiffSymbol}${prop.heightDiff.toFixed(1)} cm`;
+
+        const pricing = getCartPricing(prop.unitCount);
+        const unitPriceText = `$${pricing.unitPrice.toLocaleString('es-CL')}`;
+        const totalPriceText = `$${prop.totalPrice.toLocaleString('es-CL')}`;
+
+        const svgHtml = generateProposalSvg(prop, targetW, targetH);
+        const serializedProposal = encodeURIComponent(JSON.stringify(prop));
+
+        card.innerHTML = `
+            <div class="proposal-header">
+                <span class="proposal-title">${rankText}</span>
+                <span class="proposal-rank" style="background-color: ${index === 0 ? 'var(--color-olive)' : '#64748b'};">${index === 0 ? 'Mejor opción' : 'Opción de stock'}</span>
+            </div>
+            
+            <div class="proposal-body">
+                <div class="proposal-info-panel">
+                    <ul class="proposal-info-list">
+                        <li>
+                            <span>Espacio requerido:</span>
+                            <strong>${targetW} × ${targetH} cm</strong>
+                        </li>
+                        <li>
+                            <span>Espacio cubierto:</span>
+                            <strong>${prop.totalWidth.toFixed(1)} × ${prop.totalHeight.toFixed(1)} cm</strong>
+                        </li>
+                        <li>
+                            <span>Diferencia en ancho:</span>
+                            <strong style="color: ${prop.widthDiff === 0 ? 'var(--color-olive)' : '#b45309'};">${wDiffText}</strong>
+                        </li>
+                        <li>
+                            <span>Diferencia en alto:</span>
+                            <strong style="color: ${prop.heightDiff === 0 ? 'var(--color-olive)' : '#b45309'};">${hDiffText}</strong>
+                        </li>
+                        <li>
+                            <span>Superficie cubierta:</span>
+                            <strong>${prop.areaCovered.toFixed(2)} m²</strong>
+                        </li>
+                        <li>
+                            <span>Total cristales (paños):</span>
+                            <strong>${prop.unitCount} unidades</strong>
+                        </li>
+                    </ul>
+                    
+                    <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.05);">
+                        <h4 style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 8px;">Detalle de cristales:</h4>
+                        <ul class="proposal-info-list" style="gap: 5px;">
+                            ${productsListHtml}
+                        </ul>
+                    </div>
+
+                    <div class="proposal-price-tag">
+                        <span style="font-size: 0.85rem; font-weight: 500; color: var(--color-text-muted);">Valor estimado:</span>
+                        <span>${totalPriceText} <span style="font-size: 0.75rem; font-weight: 500; color: var(--color-text-muted);">(${unitPriceText} c/u)</span></span>
+                    </div>
+                </div>
+
+                <div class="proposal-visualizer">
+                    <h4>Vista referencial de cobertura</h4>
+                    <div class="svg-viewport-wrapper">
+                        ${svgHtml}
+                    </div>
+                    
+                    <div class="svg-legend">
+                        <div class="legend-item">
+                            <span class="legend-color panel"></span>
+                            <span>Termopanel en stock</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color remaining"></span>
+                            <span>Espacio restante</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color line"></span>
+                            <span>Unión</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="proposal-actions">
+                <button class="cta-button primary-hero-btn" onclick="addProposalToCart('${serializedProposal}')" style="margin: 0; padding: 12px 20px; font-size: 0.9rem; justify-content: center; width: 100%;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    Agregar propuesta al carro
+                </button>
+                <button class="cta-button whatsapp" onclick="quoteProposalOnWhatsApp('${serializedProposal}')" style="margin: 0; padding: 12px 20px; font-size: 0.9rem; justify-content: center; width: 100%;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style="margin-right: 6px; fill: currentColor;">
+                        <path d="M12.031 2c-5.502 0-9.969 4.468-9.969 9.97 0 1.758.459 3.479 1.332 4.995L2 22l5.176-1.358c1.466.8 3.102 1.22 4.85 1.22h.004c5.502 0 9.969-4.467 9.969-9.969A9.92 9.92 0 0 0 12.031 2zm0 18.06h-.003c-1.558 0-3.085-.418-4.417-1.21l-.317-.188-3.284.861.876-3.2-.206-.328c-.87-1.385-1.33-2.988-1.33-4.636 0-4.693 3.82-8.513 8.517-8.513a8.44 8.44 0 0 1 6.021 2.496a8.44 8.44 0 0 1 2.493 6.024c.001 4.693-3.82 8.516-8.517 8.516zm4.665-6.381c-.255-.127-1.505-.742-1.738-.827-.233-.085-.403-.127-.572.127-.169.254-.656.828-.804.997-.148.17-.297.19-.552.063-.255-.127-.1.08-.1.08-1.077-.373-1.954-.954-2.73-1.628-.663-.576-1.11-1.288-1.24-1.542-.128-.255-.014-.393.114-.52.115-.115.255-.297.382-.445.127-.148.169-.254.254-.424.085-.17.042-.318-.021-.445-.064-.127-.572-1.377-.784-1.886-.207-.5-.436-.43-.572-.43-.148 0-.318-.008-.488-.008a.94.94 0 0 0-.678.318c-.233.255-.89.87-.89 2.123 0 1.254.912 2.463 1.04 2.632.127.17 1.795 2.748 4.348 3.85.607.262 1.081.42 1.45.538.61.194 1.165.166 1.603.1.488-.073 1.505-.615 1.717-1.208.212-.593.212-1.102.148-1.208-.063-.105-.233-.148-.488-.275z"/>
+                    </svg>
+                    Cotizar por WhatsApp
+                </button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+
+    container.appendChild(grid);
+}
+
+// Dibujar SVG dinámicamente
+function generateProposalSvg(prop, targetW, targetH) {
+    const canvasW = 340;
+    const canvasH = 220;
+    const paddingX = 30;
+    const paddingY = 30;
+
+    const fitW = canvasW - (paddingX * 2);
+    const fitH = canvasH - (paddingY * 2);
+    
+    const maxW = Math.max(targetW, prop.totalWidth);
+    const maxH = Math.max(targetH, prop.totalHeight);
+    
+    const k_scale = Math.min(fitW / maxW, fitH / maxH);
+
+    const outerW = targetW * k_scale;
+    const outerH = targetH * k_scale;
+    
+    let svg = `<svg width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <pattern id="diagonalHatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="8" style="stroke:#e2e8f0; stroke-width:3" />
+            </pattern>
+        </defs>
+    `;
+
+    // 1. Dibujar el marco exterior con fondo de patrón rayado (representa el vano total)
+    svg += `
+        <!-- Vano total requerido -->
+        <rect x="${paddingX}" y="${paddingY}" width="${outerW}" height="${outerH}" fill="url(#diagonalHatch)" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4" />
+    `;
+
+    // 2. Dibujar termopaneles propuestos
+    let currentX = paddingX;
+    
+    prop.panes.forEach((pane, index) => {
+        const paneW = pane.width * k_scale;
+        const paneH = pane.height * k_scale;
+        
+        // Alinear al fondo del vano (y = paddingY + outerH - paneH)
+        const paneY = paddingY + outerH - paneH;
+        
+        svg += `
+            <!-- Panel ${index + 1} -->
+            <rect x="${currentX}" y="${paneY}" width="${paneW}" height="${paneH}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="3" />
+        `;
+        
+        const textX = currentX + (paneW / 2);
+        const textY = paneY + (paneH / 2);
+        
+        if (paneW > 35) {
+            svg += `
+                <text x="${textX}" y="${textY - 4}" font-size="8" font-weight="700" fill="#0369a1" text-anchor="middle" dominant-baseline="middle">${pane.product.ancho_cm}×${pane.product.alto_cm}</text>
+                <text x="${textX}" y="${textY + 6}" font-size="7" font-weight="600" fill="#0284c7" text-anchor="middle" dominant-baseline="middle">cm${pane.rotated ? ' (G)' : ''}</text>
+            `;
+        } else {
+            svg += `
+                <text x="${textX}" y="${textY}" font-size="8" font-weight="700" fill="#0369a1" text-anchor="middle" dominant-baseline="middle">${index + 1}</text>
+            `;
+        }
+        
+        // Línea de unión
+        if (index > 0) {
+            svg += `
+                <line x1="${currentX}" y1="${paddingY}" x2="${currentX}" y2="${paddingY + outerH}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />
+            `;
+        }
+        
+        currentX += paneW;
+    });
+
+    // 3. Cotas y leyendas
+    // Ancho total requerido
+    const labelW_X = paddingX + (outerW / 2);
+    const labelW_Y = paddingY + outerH + 18;
+    svg += `<text x="${labelW_X}" y="${labelW_Y}" font-size="9" font-weight="700" fill="#475569" text-anchor="middle">Vano: ${targetW} cm</text>`;
+    
+    // Alto total requerido
+    const labelH_X = paddingX - 10;
+    const labelH_Y = paddingY + (outerH / 2);
+    svg += `<text x="${labelH_X}" y="${labelH_Y}" font-size="9" font-weight="700" fill="#475569" text-anchor="middle" transform="rotate(-90 ${labelH_X} ${labelH_Y})">Vano: ${targetH} cm</text>`;
+
+    // Ancho cubierto
+    const covW_X = paddingX + ((prop.totalWidth * k_scale) / 2);
+    const covW_Y = paddingY - 10;
+    svg += `<text x="${covW_X}" y="${covW_Y}" font-size="9" font-weight="700" fill="#0284c7" text-anchor="middle">Cubierto: ${prop.totalWidth.toFixed(1)} cm</text>`;
+
+    // Espacio faltante en ancho
+    if (prop.totalWidth < targetW) {
+        const remW = targetW - prop.totalWidth;
+        const remW_pixel = remW * k_scale;
+        const remX = paddingX + (prop.totalWidth * k_scale) + (remW_pixel / 2);
+        const remY = paddingY + (outerH / 2);
+        
+        svg += `
+            <text x="${remX}" y="${remY}" font-size="8" font-weight="700" fill="#64748b" text-anchor="middle" transform="rotate(-90 ${remX} ${remY})">Faltan ${remW.toFixed(1)} cm</text>
+        `;
+    }
+
+    // Espacio faltante en alto
+    if (prop.totalHeight < targetH) {
+        const remH = targetH - prop.totalHeight;
+        const remH_pixel = remH * k_scale;
+        const remX = paddingX + ((prop.totalWidth * k_scale) / 2);
+        const remY = paddingY + (remH_pixel / 2);
+        
+        svg += `
+            <text x="${remX}" y="${remY}" font-size="8" font-weight="700" fill="#64748b" text-anchor="middle">Faltan ${remH.toFixed(1)} cm de alto</text>
+        `;
+    }
+
+    svg += `</svg>`;
+    return svg;
+}
+
+// Agregar propuesta al carro de compras
+window.addProposalToCart = function(serializedProposal) {
+    try {
+        const prop = JSON.parse(decodeURIComponent(serializedProposal));
+        
+        const productCounts = {};
+        prop.panes.forEach(pane => {
+            const key = pane.product.id;
+            if (!productCounts[key]) {
+                productCounts[key] = {
+                    product: pane.product,
+                    qty: 0
+                };
+            }
+            productCounts[key].qty++;
+        });
+
+        let addedCount = 0;
+        let errors = [];
+
+        Object.values(productCounts).forEach(item => {
+            const p = item.product;
+            const cartItem = appState.cart.find(ci => ci.id === p.id);
+            const currentQtyInCart = cartItem ? cartItem.qty : 0;
+            
+            if (currentQtyInCart + item.qty > p.unidades) {
+                errors.push(`Medida ${p.medida_cm}: No hay suficiente stock (En carro: ${currentQtyInCart}, Solicitado: +${item.qty}, Disponible: ${p.unidades}).`);
+            } else {
+                if (cartItem) {
+                    cartItem.qty += item.qty;
+                } else {
+                    appState.cart.push({
+                        id: p.id,
+                        ancho_cm: p.ancho_cm,
+                        alto_cm: p.alto_cm,
+                        medida_cm: p.medida_cm,
+                        forma: p.forma,
+                        qty: item.qty,
+                        maxQty: p.unidades
+                    });
+                }
+                addedCount += item.qty;
+            }
+        });
+
+        if (errors.length > 0) {
+            alert(`Algunas medidas no se pudieron agregar por límite de stock:\n\n${errors.join('\n')}\n\nSe agregaron las demás unidades exitosamente.`);
+        } else {
+            alert(`¡Se agregaron con éxito las ${addedCount} unidades de la propuesta al carro de compras!`);
+        }
+
+        saveCart();
+        updateCartUI();
+        openCart(true);
+    } catch (e) {
+        console.error('Error al agregar propuesta al carro:', e);
+    }
+};
+
+// Cotizar propuesta en WhatsApp
+window.quoteProposalOnWhatsApp = function(serializedProposal) {
+    try {
+        const prop = JSON.parse(decodeURIComponent(serializedProposal));
+        
+        const productCounts = {};
+        prop.panes.forEach(pane => {
+            const key = pane.product.id + (pane.rotated ? '_R' : '_N');
+            if (!productCounts[key]) {
+                productCounts[key] = {
+                    product: pane.product,
+                    width: pane.width,
+                    height: pane.height,
+                    rotated: pane.rotated,
+                    qty: 0
+                };
+            }
+            productCounts[key].qty++;
+        });
+
+        let itemsText = '';
+        Object.values(productCounts).forEach(item => {
+            const rotText = item.rotated ? ' (Girado)' : '';
+            itemsText += `* ${item.qty} u × termopanel fijo de ${item.product.ancho_cm} x ${item.product.alto_cm} cm${rotText}\n`;
+        });
+
+        const pricing = getCartPricing(prop.unitCount);
+        const unitPriceText = `$${pricing.unitPrice.toLocaleString('es-CL')} c/u`;
+        const totalPriceText = `$${prop.totalPrice.toLocaleString('es-CL')}`;
+
+        const message = `Hola, quiero cotizar la siguiente propuesta del Planificador de Cobertura:
+
+Espacio a cubrir: ${prop.totalWidth.toFixed(1)} cm de ancho × ${prop.totalHeight.toFixed(1)} cm de alto.
+Total cristales: ${prop.unitCount}
+
+Detalle de termopaneles sugeridos:
+${itemsText}
+Precio unitario estimado: ${unitPriceText}
+Total estimado de la propuesta: ${totalPriceText}
+
+Quedo atento/a para confirmar stock y coordinar el retiro en El Monte. Gracias.`;
+
+        const encodedText = encodeURIComponent(message);
+        const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
+
+        window.open(whatsappUrl, '_blank');
+    } catch (e) {
+        console.error('Error al cotizar propuesta por WhatsApp:', e);
+    }
+};
