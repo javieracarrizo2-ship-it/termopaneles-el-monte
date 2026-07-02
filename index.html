@@ -73,10 +73,10 @@
                 <!-- Hero Action Buttons -->
                 <div class="hero-actions-container">
                     <a href="#catalog-section" class="cta-button primary-hero-btn">
-                        Ver Medidas y Stock
+                        Ver medidas disponibles
                     </a>
                     <a href="#calculator-section" class="cta-button secondary-hero-btn">
-                        Calculadora de Vano
+                        Calcular medida aproximada
                     </a>
                 </div>
             </div>
@@ -135,33 +135,74 @@
             </div>
 
             <div class="planner-card">
-                <div class="planner-form">
-                    <div class="calc-input-group">
-                        <label for="planner-width">Ancho total del espacio (cm)</label>
-                        <input type="number" id="planner-width" min="10" max="1000" placeholder="Ej: 300" required>
+                <div class="planner-left-column">
+                    <div class="planner-instructions">
+                        <h3>📋 Cómo usar el planificador</h3>
+                        <ul>
+                            <li>📏 <strong>Medidas:</strong> Ingresa el ancho (máx. 600 cm) y alto (máx. 300 cm) del espacio.</li>
+                            <li>🪟 <strong>Paños:</strong> Limita la cantidad de divisiones que deseas para tu estructura.</li>
+                            <li>📐 <strong>Distribución:</strong> Puedes forzar una fila, dos filas o cuadrícula.</li>
+                            <li>⚙️ <strong>Prioridad:</strong> Prioriza menos divisiones o rellenar el espacio al máximo.</li>
+                        </ul>
                     </div>
-                    <div class="calc-input-group">
-                        <label for="planner-height">Alto total del espacio (cm)</label>
-                        <input type="number" id="planner-height" min="10" max="500" placeholder="Ej: 240" required>
+
+                    <div class="planner-form">
+                        <div class="calc-input-group">
+                            <label for="planner-width">Ancho total del espacio (cm)</label>
+                            <input type="number" id="planner-width" min="10" max="600" placeholder="Ej: 300" required>
+                        </div>
+                        <div class="calc-input-group">
+                            <label for="planner-height">Alto total del espacio (cm)</label>
+                            <input type="number" id="planner-height" min="10" max="300" placeholder="Ej: 240" required>
+                        </div>
+                        <div class="calc-input-group">
+                            <label for="planner-panes">Máximo de paños aceptado</label>
+                            <select id="planner-panes">
+                                <option value="2">2 paños</option>
+                                <option value="3">3 paños</option>
+                                <option value="4">4 paños</option>
+                                <option value="6">6 paños</option>
+                                <option value="8">8 paños</option>
+                                <option value="all" selected>Mostrar todas las alternativas</option>
+                            </select>
+                        </div>
+                        <div class="calc-input-group">
+                            <label for="planner-distribution">Tipo de distribución</label>
+                            <select id="planner-distribution">
+                                <option value="auto" selected>Automática</option>
+                                <option value="row">Una fila horizontal</option>
+                                <option value="column">Paños verticales (Pila única)</option>
+                                <option value="two-rows">Dos filas</option>
+                                <option value="grid">Cuadrícula</option>
+                            </select>
+                        </div>
+                        <div class="calc-input-group">
+                            <label for="planner-priority">Prioridad de la propuesta</label>
+                            <select id="planner-priority">
+                                <option value="joints" selected>Menos uniones</option>
+                                <option value="coverage">Mejor cobertura</option>
+                                <option value="gaps">Menor espacio restante</option>
+                                <option value="stock">Aprovechar stock disponible</option>
+                            </select>
+                        </div>
+                        <div class="calc-input-group">
+                            <label for="planner-tolerance">Tolerancia de diferencia máxima</label>
+                            <select id="planner-tolerance">
+                                <option value="2">2 cm</option>
+                                <option value="5" selected>5 cm</option>
+                                <option value="10">10 cm</option>
+                                <option value="20">20 cm</option>
+                            </select>
+                        </div>
+                        <div class="calc-input-group">
+                            <label for="planner-rotation">Permitir giro de orientación</label>
+                            <select id="planner-rotation">
+                                <option value="yes" selected>Permitir girar termopaneles</option>
+                                <option value="no">No permitir giro</option>
+                            </select>
+                        </div>
+                        <button class="calc-btn" id="planner-btn">Calcular Distribución</button>
                     </div>
-                    <div class="calc-input-group">
-                        <label for="planner-panes">Cantidad de paños (opcional)</label>
-                        <input type="number" id="planner-panes" min="1" max="10" placeholder="Cualquier cantidad">
-                    </div>
-                    <div class="calc-input-group">
-                        <label for="planner-tolerance">Tolerancia de diferencia máxima</label>
-                        <select id="planner-tolerance">
-                            <option value="2">2 cm</option>
-                            <option value="5" selected>5 cm</option>
-                            <option value="10">10 cm</option>
-                            <option value="20">20 cm</option>
-                        </select>
-                    </div>
-                    <div class="calc-checkbox-group">
-                        <input type="checkbox" id="planner-rotation">
-                        <label for="planner-rotation">Permitir girar termopaneles (cambiar orientación)</label>
-                    </div>
-                    <button class="calc-btn" id="planner-btn">Calcular Distribución</button>
                 </div>
 
                 <div class="planner-results-wrapper">
@@ -199,23 +240,34 @@
                 <!-- Step 1 -->
                 <div class="how-to-buy-card">
                     <div class="step-number">1</div>
-                    <h3>Elige tus Medidas</h3>
-                    <p>Revisa nuestro inventario en tiempo real. Selecciona las medidas y unidades que necesitas para tu proyecto y añádelas al carrito o cotiza directamente.</p>
+                    <h3>Elige tu medida</h3>
+                    <p>Revisa las opciones disponibles en el inventario.</p>
                 </div>
                 
                 <!-- Step 2 -->
                 <div class="how-to-buy-card">
                     <div class="step-number">2</div>
-                    <h3>Cotiza por WhatsApp</h3>
-                    <p>Envía tu cotización con un solo clic. Confirmamos disponibilidad por WhatsApp para asegurar el stock de tus vidrios.</p>
+                    <h3>Arma tu cotización</h3>
+                    <p>Agrega al carro o consulta una medida por WhatsApp.</p>
                 </div>
                 
                 <!-- Step 3 -->
                 <div class="how-to-buy-card">
                     <div class="step-number">3</div>
-                    <h3>Pago y Retiro</h3>
-                    <p>Coordinaremos el día y hora para el retiro en nuestra bodega en El Monte. El pago se realiza mediante 📲 <strong>transferencia electrónica</strong> o 💵 <strong>efectivo</strong> al retirar.</p>
+                    <h3>Confirma stock y pago</h3>
+                    <p>Confirmamos disponibilidad y valor final.</p>
                 </div>
+                
+                <!-- Step 4 -->
+                <div class="how-to-buy-card">
+                    <div class="step-number">4</div>
+                    <h3>Retiro coordinado</h3>
+                    <p>Agenda tu retiro en El Monte una vez confirmada la compra.</p>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px; font-weight: 700; color: var(--color-text-primary); font-size: 1.1rem; background-color: var(--color-bg); padding: 15px; border-radius: 12px; border: 1px dashed rgba(85, 107, 47, 0.2);">
+                Aceptamos transferencia bancaria y efectivo.
             </div>
         </div>
     </section>

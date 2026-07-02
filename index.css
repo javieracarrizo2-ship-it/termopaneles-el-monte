@@ -1699,7 +1699,7 @@ footer {
 
 @media (min-width: 768px) {
     .how-to-buy-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     }
 }
 
@@ -2910,4 +2910,104 @@ footer {
     .proposal-actions {
         grid-template-columns: 1.1fr 1fr;
     }
+}
+
+/* ==========================================================================
+   Planificador de Cobertura v2 Styles
+   ========================================================================== */
+.planner-left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.planner-instructions {
+    background-color: var(--color-bg);
+    border: 1px solid rgba(85, 107, 47, 0.12);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.planner-instructions h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 12px;
+    margin-top: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.planner-instructions ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.planner-instructions li {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.planner-instructions li strong {
+    color: var(--color-text-primary);
+}
+
+/* Planner Error / Limit Exceeded block */
+.planner-limit-exceeded {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--color-text-primary);
+    gap: 16px;
+    padding: 40px 24px;
+    background-color: #fffaf0; /* Warm warning yellow bg */
+    border: 1px solid #fbdca5;
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
+    animation: fadeIn 0.4s ease-out;
+}
+
+.planner-limit-exceeded svg {
+    color: #d97706; /* Warning amber */
+    margin-bottom: 4px;
+}
+
+.planner-limit-exceeded h3 {
+    color: var(--color-text-primary);
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.planner-limit-exceeded p {
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    max-width: 420px;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.planner-limit-exceeded-actions {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.planner-limit-exceeded-actions .calc-btn-whatsapp {
+    text-decoration: none;
+    font-family: var(--font-header);
+    font-weight: 700;
+    padding: 12px 28px;
 }

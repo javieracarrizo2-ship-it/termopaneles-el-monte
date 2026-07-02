@@ -1156,119 +1156,272 @@ function calculateClosestMatches(userWidth, userHeight) {
 
 // ==========================================================================
 // Planificador de Cobertura Implementation
-// ==========================================================================
-
-// Initialize Coverage Planner tool
+// ===============================================// Initialize Coverage Planner tool v2
 function initPlanner() {
     const wInput = document.getElementById('planner-width');
     const hInput = document.getElementById('planner-height');
     const pInput = document.getElementById('planner-panes');
+    const dSelect = document.getElementById('planner-distribution');
+    const prSelect = document.getElementById('planner-priority');
     const tSelect = document.getElementById('planner-tolerance');
-    const rCheckbox = document.getElementById('planner-rotation');
+    const rSelect = document.getElementById('planner-rotation');
     const plannerBtn = document.getElementById('planner-btn');
     const resultsContainer = document.getElementById('planner-results');
 
-    if (!wInput || !hInput || !plannerBtn || !resultsContainer) return;
+    if (!wInput || !hInput || !pInput || !dSelect || !prSelect || !tSelect || !rSelect || !plannerBtn || !resultsContainer) return;
 
     plannerBtn.addEventListener('click', () => {
         const widthVal = parseFloat(wInput.value);
         const heightVal = parseFloat(hInput.value);
-        const panesVal = pInput.value ? parseInt(pInput.value, 10) : null;
+        const panesVal = pInput.value;
+        const distVal = dSelect.value;
+        const priorityVal = prSelect.value;
         const toleranceVal = parseFloat(tSelect.value);
-        const allowRotation = rCheckbox.checked;
+        const rotationVal = rSelect.value;
 
         if (isNaN(widthVal) || isNaN(heightVal) || widthVal <= 0 || heightVal <= 0) {
             alert('Por favor, ingresa un ancho y alto válidos en centímetros.');
             return;
         }
 
-        if (panesVal !== null && (isNaN(panesVal) || panesVal <= 0)) {
-            alert('Por favor, ingresa una cantidad de paños válida o déjala vacía.');
+        // Límite de la herramienta: Ancho máx: 600 cm, Alto máx: 300 cm
+        if (widthVal > 600 || heightVal > 300) {
+            resultsContainer.innerHTML = `
+                <div class="planner-limit-exceeded">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    <h3>Medidas superan el límite del stock estándar</h3>
+                    <p>Para espacios mayores o proyectos con varios paños, envíanos tus medidas por WhatsApp y revisamos alternativas según el stock disponible.</p>
+                    <div class="planner-limit-exceeded-actions">
+                        <a href="https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent('Hola, quiero cotizar un cierre a medida para un espacio de ' + widthVal + ' cm de ancho por ' + heightVal + ' cm de alto.')}" target="_blank" class="calc-btn-whatsapp">Cotizar por WhatsApp</a>
+                    </div>
+                </div>
+            `;
             return;
         }
 
         // Show loading state
         resultsContainer.innerHTML = `
             <div class="calc-placeholder">
-                <p>Calculando la mejor distribución para ${widthVal} × ${heightVal} cm...</p>
+                <p>Calculando distribuciones referenciales en base a tu stock...</p>
             </div>
         `;
 
-        // Search in a microtask/timeout to allow DOM thread updating
         setTimeout(() => {
-            const proposals = findCoverageCombinations(widthVal, heightVal, panesVal, allowRotation, toleranceVal, appState.products);
-            renderPlannerProposals(proposals, widthVal, heightVal, resultsContainer);
+            const alternatives = findCoverageCombinationsAdvanced(
+                widthVal, 
+                heightVal, 
+                panesVal, 
+                distVal, 
+                priorityVal, 
+                rotationVal, 
+                toleranceVal, 
+                appState.products
+            );
+            renderPlannerProposals(alternatives, widthVal, heightVal, resultsContainer);
         }, 100);
     });
 }
 
-// Algoritmo de Cobertura
-function findCoverageCombinations(targetW, targetH, targetPanes, allowRotation, tolerance, inventory) {
-    // 1. Considerar solo productos con stock > 0
-    const availableItems = inventory.filter(item => item.unidades > 0);
+// Algoritmo de Búsqueda Avanzado de Cobertura
+function findCoverageCombinationsAdvanced(targetW, targetH, maxPanesStr, distType, priority, allowRotationStr, tolerance, inventory) {
+    const allowRotation = (allowRotationStr === 'yes');
+    
+    // Máximo de termopaneles por propuesta: 8 (Límite técnico)
+    let maxPanes = 8;
+    if (maxPanesStr !== 'all') {
+        maxPanes = parseInt(maxPanesStr, 10);
+        if (isNaN(maxPanes) || maxPanes > 8) maxPanes = 8;
+    }
 
-    // 2. Identificar alturas de termopaneles elegibles (dentro de la tolerancia)
-    const eligibleHeights = new Set();
-    availableItems.forEach(item => {
-        if (Math.abs(item.alto_cm - targetH) <= tolerance) {
-            eligibleHeights.add(item.alto_cm);
-        }
-        if (allowRotation && Math.abs(item.ancho_cm - targetH) <= tolerance) {
-            eligibleHeights.add(item.ancho_cm);
+    let allProposals = [];
+
+    // Fila única (lado a lado horizontal)
+    if (distType === 'row' || distType === 'auto') {
+        allProposals = allProposals.concat(findRowCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory));
+    }
+    // Columna única (apilados verticalmente)
+    if (distType === 'column' || distType === 'auto') {
+        allProposals = allProposals.concat(findColumnCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory));
+    }
+    // Dos filas apiladas
+    if (distType === 'two-rows' || distType === 'auto') {
+        allProposals = allProposals.concat(findTwoRowsCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory));
+    }
+    // Cuadrícula R x C
+    if (distType === 'grid' || distType === 'auto') {
+        allProposals = allProposals.concat(findGridCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory));
+    }
+
+    // Deduplicar propuestas por estructura de filas
+    const uniqueProposals = [];
+    const seenLayouts = new Set();
+
+    allProposals.forEach(prop => {
+        const rowKeys = prop.rows.map(row => row.map(p => p.id).join(','));
+        const layoutKey = prop.type + '|' + rowKeys.join(';');
+        
+        if (!seenLayouts.has(layoutKey)) {
+            seenLayouts.add(layoutKey);
+            uniqueProposals.push(prop);
         }
     });
 
-    const proposals = [];
+    // Puntuación
+    uniqueProposals.forEach(prop => {
+        prop.areaCovered = (prop.totalWidth * prop.totalHeight) / 10000; // m2
+        prop.unitCount = prop.panes.length;
+        
+        const pricing = getCartPricing(prop.unitCount);
+        prop.totalPrice = prop.unitCount * pricing.unitPrice;
+        
+        const wDiff = Math.abs(prop.widthDiff);
+        const hDiff = Math.abs(prop.heightDiff);
+        
+        // Stock minimo de los productos usados
+        const minStock = Math.min(...prop.panes.map(p => p.product.unidades));
 
-    // 3. Buscar combinaciones de anchos por cada altura elegible
+        // Sub-scores para las alternativas
+        prop.scoreJoints = prop.unitCount; 
+        prop.scoreCoverage = -prop.areaCovered; 
+        prop.scoreGaps = wDiff + hDiff; 
+        prop.scoreStock = -minStock; 
+
+        // Cálculo de score según prioridad seleccionada
+        if (priority === 'joints') {
+            prop.score = prop.unitCount * 2.0 + (wDiff + hDiff) * 0.5;
+        } else if (priority === 'coverage') {
+            prop.score = -prop.areaCovered * 100 + prop.unitCount * 0.15 + (wDiff + hDiff) * 0.2;
+        } else if (priority === 'gaps') {
+            prop.score = (wDiff + hDiff) * 2.0 + prop.unitCount * 0.15;
+        } else if (priority === 'stock') {
+            prop.score = -minStock * 0.5 + (wDiff + hDiff) * 1.0 + prop.unitCount * 0.15;
+        } else {
+            prop.score = (wDiff + hDiff) * 1.5 + prop.unitCount * 0.5;
+        }
+    });
+
+    // Selección de las 3 alternativas distintas
+    const selected = [];
+
+    // 1. Mejor alternativa general
+    uniqueProposals.sort((a, b) => a.score - b.score);
+    if (uniqueProposals.length > 0) {
+        selected.push({
+            rankTitle: 'Mejor alternativa general',
+            proposal: uniqueProposals[0]
+        });
+    }
+
+    function isAlreadySelected(prop) {
+        return selected.some(s => {
+            const rowKeysS = s.proposal.rows.map(row => row.map(p => p.id).join(',')).join(';');
+            const rowKeysP = prop.rows.map(row => row.map(p => p.id).join(',')).join(';');
+            return s.proposal.type === prop.type && rowKeysS === rowKeysP;
+        });
+    }
+
+    // 2. Alternativa con menos uniones
+    const sortedJoints = [...uniqueProposals].sort((a, b) => {
+        if (a.scoreJoints !== b.scoreJoints) return a.scoreJoints - b.scoreJoints;
+        return a.scoreGaps - b.scoreGaps;
+    });
+    
+    let jointsProp = sortedJoints.find(p => !isAlreadySelected(p));
+    if (jointsProp) {
+        selected.push({
+            rankTitle: 'Alternativa con menos uniones',
+            proposal: jointsProp
+        });
+    }
+
+    // 3. Alternativa con mejor cobertura
+    const sortedCoverage = [...uniqueProposals].sort((a, b) => {
+        if (Math.abs(a.scoreCoverage - b.scoreCoverage) > 0.001) return a.scoreCoverage - b.scoreCoverage;
+        return a.scoreGaps - b.scoreGaps;
+    });
+
+    let coverageProp = sortedCoverage.find(p => !isAlreadySelected(p));
+    if (coverageProp) {
+        selected.push({
+            rankTitle: 'Alternativa con mejor cobertura',
+            proposal: coverageProp
+        });
+    }
+
+    // Si aún nos faltan alternativas distintas, rellenar de la lista general
+    if (selected.length < 3 && uniqueProposals.length > selected.length) {
+        uniqueProposals.forEach(p => {
+            if (selected.length < 3 && !isAlreadySelected(p)) {
+                selected.push({
+                    rankTitle: `Alternativa de stock`,
+                    proposal: p
+                });
+            }
+        });
+    }
+
+    return selected;
+}
+
+// Búsqueda de una fila
+function findRowCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory) {
+    const availableItems = inventory.filter(item => item.unidades > 0);
+    const eligibleHeights = new Set();
+    availableItems.forEach(item => {
+        if (Math.abs(item.alto_cm - targetH) <= tolerance) eligibleHeights.add(item.alto_cm);
+        if (allowRotation && Math.abs(item.ancho_cm - targetH) <= tolerance) eligibleHeights.add(item.ancho_cm);
+    });
+
+    const results = [];
+    const maxCols = Math.min(maxPanes, 6); // Límite de columnas: 6
+
     eligibleHeights.forEach(h => {
         const eligibleProducts = [];
         availableItems.forEach(item => {
             let matchesNormal = Math.abs(item.alto_cm - h) < 0.01;
             let matchesRotated = allowRotation && Math.abs(item.ancho_cm - h) < 0.01;
 
-            if (matchesNormal || matchesRotated) {
-                if (matchesNormal) {
-                    eligibleProducts.push({
-                        product: item,
-                        width: item.ancho_cm,
-                        height: item.alto_cm,
-                        rotated: false,
-                        id: `${item.id}-N`
-                    });
-                }
-                if (matchesRotated && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
-                    eligibleProducts.push({
-                        product: item,
-                        width: item.alto_cm,
-                        height: item.ancho_cm,
-                        rotated: true,
-                        id: `${item.id}-R`
-                    });
-                }
+            if (matchesNormal) {
+                eligibleProducts.push({
+                    product: item,
+                    width: item.ancho_cm,
+                    height: item.alto_cm,
+                    rotated: false,
+                    id: `${item.id}-N`
+                });
+            }
+            if (matchesRotated && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
+                eligibleProducts.push({
+                    product: item,
+                    width: item.alto_cm,
+                    height: item.ancho_cm,
+                    rotated: true,
+                    id: `${item.id}-R`
+                });
             }
         });
 
         if (eligibleProducts.length === 0) return;
 
-        const minPanes = targetPanes ? targetPanes : 1;
-        const maxPanes = targetPanes ? targetPanes : 6;
-
-        const results = [];
-        
-        // Depth-First Search for width combinations
         function dfs(index, currentCombo, currentSum, productUsage) {
             const diff = currentSum - targetW;
-            if (Math.abs(diff) <= tolerance && currentCombo.length >= minPanes && currentCombo.length <= maxPanes) {
+            if (Math.abs(diff) <= tolerance && currentCombo.length >= 1 && currentCombo.length <= maxCols) {
                 results.push({
-                    height: h,
-                    panes: [...currentCombo],
+                    type: 'row',
+                    rows: [[...currentCombo]],
                     totalWidth: currentSum,
-                    widthDiff: diff
+                    totalHeight: h,
+                    widthDiff: diff,
+                    heightDiff: h - targetH,
+                    panes: [...currentCombo]
                 });
             }
 
-            if (currentCombo.length >= maxPanes || currentSum > targetW + tolerance) {
+            if (currentCombo.length >= maxCols || currentSum > targetW + tolerance) {
                 return;
             }
 
@@ -1280,9 +1433,7 @@ function findCoverageCombinations(targetW, targetH, targetPanes, allowRotation, 
                 if (used < ep.product.unidades) {
                     productUsage[pId] = used + 1;
                     currentCombo.push(ep);
-                    
                     dfs(i, currentCombo, currentSum + ep.width, productUsage);
-                    
                     currentCombo.pop();
                     productUsage[pId] = used;
                 }
@@ -1290,48 +1441,299 @@ function findCoverageCombinations(targetW, targetH, targetPanes, allowRotation, 
         }
 
         dfs(0, [], 0, {});
+    });
 
-        results.forEach(res => {
-            proposals.push(res);
+    return results;
+}
+
+// Búsqueda de una columna (pila única)
+function findColumnCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory) {
+    const availableItems = inventory.filter(item => item.unidades > 0);
+    const eligibleWidths = new Set();
+    availableItems.forEach(item => {
+        if (Math.abs(item.ancho_cm - targetW) <= tolerance) eligibleWidths.add(item.ancho_cm);
+        if (allowRotation && Math.abs(item.alto_cm - targetW) <= tolerance) eligibleWidths.add(item.alto_cm);
+    });
+
+    const results = [];
+    const maxRows = Math.min(maxPanes, 3); // Límite de filas: 3
+
+    eligibleWidths.forEach(w => {
+        const eligibleProducts = [];
+        availableItems.forEach(item => {
+            let matchesNormal = Math.abs(item.ancho_cm - w) < 0.01;
+            let matchesRotated = allowRotation && Math.abs(item.alto_cm - w) < 0.01;
+
+            if (matchesNormal) {
+                eligibleProducts.push({
+                    product: item,
+                    width: item.ancho_cm,
+                    height: item.alto_cm,
+                    rotated: false,
+                    id: `${item.id}-N`
+                });
+            }
+            if (matchesRotated && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
+                eligibleProducts.push({
+                    product: item,
+                    width: item.alto_cm,
+                    height: item.ancho_cm,
+                    rotated: true,
+                    id: `${item.id}-R`
+                });
+            }
+        });
+
+        if (eligibleProducts.length === 0) return;
+
+        function dfs(index, currentCombo, currentSum, productUsage) {
+            const diff = currentSum - targetH;
+            if (Math.abs(diff) <= tolerance && currentCombo.length >= 1 && currentCombo.length <= maxRows) {
+                const rowsStruct = currentCombo.map(pane => [pane]);
+                results.push({
+                    type: 'column',
+                    rows: rowsStruct,
+                    totalWidth: w,
+                    totalHeight: currentSum,
+                    widthDiff: w - targetW,
+                    heightDiff: diff,
+                    panes: [...currentCombo]
+                });
+            }
+
+            if (currentCombo.length >= maxRows || currentSum > targetH + tolerance) {
+                return;
+            }
+
+            for (let i = index; i < eligibleProducts.length; i++) {
+                const ep = eligibleProducts[i];
+                const pId = ep.product.id;
+                const used = productUsage[pId] || 0;
+
+                if (used < ep.product.unidades) {
+                    productUsage[pId] = used + 1;
+                    currentCombo.push(ep);
+                    dfs(i, currentCombo, currentSum + ep.height, productUsage);
+                    currentCombo.pop();
+                    productUsage[pId] = used;
+                }
+            }
+        }
+
+        dfs(0, [], 0, {});
+    });
+
+    return results;
+}
+
+// Búsqueda de dos filas
+function findTwoRowsCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory) {
+    const availableItems = inventory.filter(item => item.unidades > 0);
+    const uniqueHeights = new Set();
+    availableItems.forEach(item => {
+        uniqueHeights.add(item.alto_cm);
+        if (allowRotation) uniqueHeights.add(item.ancho_cm);
+    });
+
+    const heightsList = Array.from(uniqueHeights);
+    const validPairs = [];
+    
+    for (let i = 0; i < heightsList.length; i++) {
+        for (let j = i; j < heightsList.length; j++) {
+            const h1 = heightsList[i];
+            const h2 = heightsList[j];
+            if (Math.abs(h1 + h2 - targetH) <= tolerance) {
+                validPairs.push([h1, h2]);
+                if (h1 !== h2) validPairs.push([h2, h1]);
+            }
+        }
+    }
+
+    const results = [];
+    const widthCombosByHeight = {};
+
+    function getWidthCombosForHeight(h) {
+        if (widthCombosByHeight[h] !== undefined) return widthCombosByHeight[h];
+
+        const eligibleProducts = [];
+        availableItems.forEach(item => {
+            let matchesNormal = Math.abs(item.alto_cm - h) < 0.01;
+            let matchesRotated = allowRotation && Math.abs(item.ancho_cm - h) < 0.01;
+
+            if (matchesNormal) {
+                eligibleProducts.push({
+                    product: item,
+                    width: item.ancho_cm,
+                    height: item.alto_cm,
+                    rotated: false,
+                    id: `${item.id}-N`
+                });
+            }
+            if (matchesRotated && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
+                eligibleProducts.push({
+                    product: item,
+                    width: item.alto_cm,
+                    height: item.ancho_cm,
+                    rotated: true,
+                    id: `${item.id}-R`
+                });
+            }
+        });
+
+        if (eligibleProducts.length === 0) {
+            widthCombosByHeight[h] = [];
+            return [];
+        }
+
+        const combos = [];
+        const maxCols = Math.min(maxPanes - 1, 6); // Reservar al menos 1 panel para la otra fila
+
+        function dfs(index, currentCombo, currentSum, productUsage) {
+            const diff = currentSum - targetW;
+            if (Math.abs(diff) <= tolerance && currentCombo.length >= 1 && currentCombo.length <= maxCols) {
+                combos.push({
+                    panes: [...currentCombo],
+                    width: currentSum,
+                    usage: { ...productUsage }
+                });
+            }
+
+            if (currentCombo.length >= maxCols || currentSum > targetW + tolerance) {
+                return;
+            }
+
+            for (let i = index; i < eligibleProducts.length; i++) {
+                const ep = eligibleProducts[i];
+                const pId = ep.product.id;
+                const used = productUsage[pId] || 0;
+
+                if (used < ep.product.unidades) {
+                    productUsage[pId] = used + 1;
+                    currentCombo.push(ep);
+                    dfs(i, currentCombo, currentSum + ep.width, productUsage);
+                    currentCombo.pop();
+                    productUsage[pId] = used;
+                }
+            }
+        }
+
+        dfs(0, [], 0, {});
+        widthCombosByHeight[h] = combos;
+        return combos;
+    }
+
+    validPairs.forEach(([h1, h2]) => {
+        const combos1 = getWidthCombosForHeight(h1);
+        const combos2 = getWidthCombosForHeight(h2);
+
+        if (combos1.length === 0 || combos2.length === 0) return;
+
+        combos1.forEach(c1 => {
+            combos2.forEach(c2 => {
+                const totalPanes = c1.panes.length + c2.panes.length;
+                if (totalPanes > maxPanes) return;
+
+                // Validar stock total sumando ambas filas
+                let stockOk = true;
+                const combinedUsage = {};
+                
+                for (const [pId, qty] of Object.entries(c1.usage)) {
+                    combinedUsage[pId] = (combinedUsage[pId] || 0) + qty;
+                }
+                for (const [pId, qty] of Object.entries(c2.usage)) {
+                    combinedUsage[pId] = (combinedUsage[pId] || 0) + qty;
+                }
+
+                for (const [pId, qty] of Object.entries(combinedUsage)) {
+                    const product = availableItems.find(p => p.id === pId);
+                    if (!product || qty > product.unidades) {
+                        stockOk = false;
+                        break;
+                    }
+                }
+
+                if (stockOk) {
+                    const panesList = [...c1.panes, ...c2.panes];
+                    results.push({
+                        type: 'two-rows',
+                        rows: [c1.panes, c2.panes],
+                        totalWidth: Math.max(c1.width, c2.width),
+                        totalHeight: h1 + h2,
+                        widthDiff: Math.max(c1.width, c2.width) - targetW,
+                        heightDiff: (h1 + h2) - targetH,
+                        panes: panesList
+                    });
+                }
+            });
         });
     });
 
-    // 4. Filtrar propuestas duplicadas
-    const uniqueProposals = [];
-    const seenCombos = new Set();
+    return results;
+}
 
-    proposals.forEach(prop => {
-        // Ordenar los IDs para que el orden de las piezas no genere duplicados semánticos
-        const key = prop.height + '_' + prop.panes.map(p => p.id).sort().join('|');
-        if (!seenCombos.has(key)) {
-            seenCombos.add(key);
-            uniqueProposals.push(prop);
+// Búsqueda de cuadrícula R x C
+function findGridCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory) {
+    const availableItems = inventory.filter(item => item.unidades > 0);
+    const results = [];
+
+    availableItems.forEach(item => {
+        checkGrid(item, item.ancho_cm, item.alto_cm, false);
+        if (allowRotation && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
+            checkGrid(item, item.alto_cm, item.ancho_cm, true);
         }
     });
 
-    // 5. Puntuación y ordenamiento
-    uniqueProposals.forEach(prop => {
-        prop.heightDiff = prop.height - targetH;
-        prop.totalHeight = prop.height;
-        prop.areaCovered = (prop.totalWidth * prop.totalHeight) / 10000;
-        prop.unitCount = prop.panes.length;
-        
-        const unitPrice = getCartPricing(prop.unitCount).unitPrice;
-        prop.totalPrice = prop.unitCount * unitPrice;
-        
-        // Menores desvíos y menos paneles se priorizan
-        prop.score = Math.abs(prop.heightDiff) * 2.5 + Math.abs(prop.widthDiff) + (prop.unitCount * 0.2);
-    });
+    function checkGrid(item, w_p, h_p, rotated) {
+        // Límite de filas: 3, Límite de columnas: 6, Límite máx. de paneles: 8
+        for (let r = 1; r <= 3; r++) {
+            for (let c = 1; c <= 6; c++) {
+                const totalPanes = r * c;
+                if (totalPanes > maxPanes) continue;
+                if (totalPanes > item.unidades) continue; 
 
-    // Ordenar de mejor a peor
-    uniqueProposals.sort((a, b) => a.score - b.score);
+                const gridW = c * w_p;
+                const gridH = r * h_p;
 
-    return uniqueProposals.slice(0, 3);
+                if (Math.abs(gridW - targetW) <= tolerance && Math.abs(gridH - targetH) <= tolerance) {
+                    const rowsStruct = [];
+                    const paneObj = {
+                        product: item,
+                        width: w_p,
+                        height: h_p,
+                        rotated: rotated,
+                        id: `${item.id}-${rotated ? 'R' : 'N'}`
+                    };
+
+                    for (let rowIdx = 0; rowIdx < r; rowIdx++) {
+                        const rowPanes = [];
+                        for (let colIdx = 0; colIdx < c; colIdx++) {
+                            rowPanes.push(paneObj);
+                        }
+                        rowsStruct.push(rowPanes);
+                    }
+
+                    const panesList = Array(totalPanes).fill(paneObj);
+
+                    results.push({
+                        type: 'grid',
+                        rows: rowsStruct,
+                        totalWidth: gridW,
+                        totalHeight: gridH,
+                        widthDiff: gridW - targetW,
+                        heightDiff: gridH - targetH,
+                        panes: panesList
+                    });
+                }
+            }
+        }
+    }
+
+    return results;
 }
 
-// Renderizar propuestas
-function renderPlannerProposals(proposals, targetW, targetH, container) {
-    if (proposals.length === 0) {
+// Renderizar propuestas en UI
+function renderPlannerProposals(alternatives, targetW, targetH, container) {
+    if (alternatives.length === 0) {
         container.innerHTML = `
             <div class="calc-no-results">
                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1342,7 +1744,7 @@ function renderPlannerProposals(proposals, targetW, targetH, container) {
                 <h3>Sin combinaciones disponibles</h3>
                 <p>No encontramos una combinación cercana con el stock actual. Puedes revisar medidas similares o cotizar por WhatsApp.</p>
                 <div class="calc-no-results-actions">
-                    <a href="https://wa.me/56977445451" target="_blank" class="calc-btn-whatsapp">Cotizar por WhatsApp</a>
+                    <a href="https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent('Hola, no encontré stock en el Planificador para ' + targetW + 'x' + targetH + ' cm. ¿Tienen otras alternativas similares?')}" target="_blank" class="calc-btn-whatsapp">Cotizar por WhatsApp</a>
                 </div>
             </div>
         `;
@@ -1354,14 +1756,12 @@ function renderPlannerProposals(proposals, targetW, targetH, container) {
     const grid = document.createElement('div');
     grid.className = 'planner-proposals-grid';
 
-    proposals.forEach((prop, index) => {
+    alternatives.forEach((alt) => {
+        const prop = alt.proposal;
         const card = document.createElement('div');
         card.className = 'proposal-card';
 
-        const ranks = ['Alternativa 1 (Recomendada)', 'Alternativa 2', 'Alternativa 3'];
-        const rankText = ranks[index] || `Alternativa ${index + 1}`;
-
-        // Contabilizar cantidades por producto
+        // Detalle de cantidades agrupadas
         const productCounts = {};
         prop.panes.forEach(pane => {
             const key = pane.product.id + (pane.rotated ? '_R' : '_N');
@@ -1398,13 +1798,37 @@ function renderPlannerProposals(proposals, targetW, targetH, container) {
         const unitPriceText = `$${pricing.unitPrice.toLocaleString('es-CL')}`;
         const totalPriceText = `$${prop.totalPrice.toLocaleString('es-CL')}`;
 
+        // Obtener etiqueta de tipo de distribución
+        let layoutLabel = '';
+        let layoutBreakdown = '';
+        
+        if (prop.type === 'row') {
+            layoutLabel = 'Una fila horizontal';
+            layoutBreakdown = `1 fila × ${prop.rows[0].length} columnas`;
+        } else if (prop.type === 'column') {
+            layoutLabel = 'Columna única';
+            layoutBreakdown = `${prop.rows.length} filas × 1 columna`;
+        } else if (prop.type === 'grid') {
+            layoutLabel = 'Cuadrícula';
+            layoutBreakdown = `${prop.rows.length} filas × ${prop.rows[0].length} columnas`;
+        } else if (prop.type === 'two-rows') {
+            const r1 = prop.rows[0];
+            const r2 = prop.rows[1];
+            if (r1.length === r2.length && r1.every((p, idx) => p.product.id === r2[idx].product.id)) {
+                layoutLabel = 'Dos filas';
+            } else {
+                layoutLabel = 'Distribución combinada';
+            }
+            layoutBreakdown = `2 filas (Fila 1: ${r1.length} cols, Fila 2: ${r2.length} cols)`;
+        }
+
         const svgHtml = generateProposalSvg(prop, targetW, targetH);
         const serializedProposal = encodeURIComponent(JSON.stringify(prop));
 
         card.innerHTML = `
             <div class="proposal-header">
-                <span class="proposal-title">${rankText}</span>
-                <span class="proposal-rank" style="background-color: ${index === 0 ? 'var(--color-olive)' : '#64748b'};">${index === 0 ? 'Mejor opción' : 'Opción de stock'}</span>
+                <span class="proposal-title">${alt.rankTitle}</span>
+                <span class="proposal-rank" style="background-color: ${alt.rankTitle.includes('general') ? 'var(--color-olive)' : '#64748b'};">${layoutLabel}</span>
             </div>
             
             <div class="proposal-body">
@@ -1427,12 +1851,16 @@ function renderPlannerProposals(proposals, targetW, targetH, container) {
                             <strong style="color: ${prop.heightDiff === 0 ? 'var(--color-olive)' : '#b45309'};">${hDiffText}</strong>
                         </li>
                         <li>
-                            <span>Superficie cubierta:</span>
-                            <strong>${prop.areaCovered.toFixed(2)} m²</strong>
+                            <span>Estructura de paños:</span>
+                            <strong>${layoutBreakdown}</strong>
                         </li>
                         <li>
-                            <span>Total cristales (paños):</span>
-                            <strong>${prop.unitCount} unidades</strong>
+                            <span>Total cristales:</span>
+                            <strong>${prop.unitCount} paños</strong>
+                        </li>
+                        <li>
+                            <span>Superficie cubierta:</span>
+                            <strong>${prop.areaCovered.toFixed(2)} m²</strong>
                         </li>
                     </ul>
                     
@@ -1495,7 +1923,7 @@ function renderPlannerProposals(proposals, targetW, targetH, container) {
     container.appendChild(grid);
 }
 
-// Dibujar SVG dinámicamente
+// Dibujar SVG dinámicamente v2
 function generateProposalSvg(prop, targetW, targetH) {
     const canvasW = 340;
     const canvasH = 220;
@@ -1521,96 +1949,170 @@ function generateProposalSvg(prop, targetW, targetH) {
         </defs>
     `;
 
-    // 1. Dibujar el marco exterior con fondo de patrón rayado (representa el vano total)
+    // 1. Dibujar el vano total (con fondo de patrón rayado)
     svg += `
         <!-- Vano total requerido -->
         <rect x="${paddingX}" y="${paddingY}" width="${outerW}" height="${outerH}" fill="url(#diagonalHatch)" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4" />
     `;
 
     // 2. Dibujar termopaneles propuestos
-    let currentX = paddingX;
-    
-    prop.panes.forEach((pane, index) => {
+    const y_bottom = paddingY + outerH;
+    const stackH_pixel = prop.totalHeight * k_scale;
+    const y_top = y_bottom - stackH_pixel;
+
+    if (prop.type === 'row') {
+        let currentX = paddingX;
+        prop.rows[0].forEach((pane, idx) => {
+            const paneW = pane.width * k_scale;
+            const paneH = pane.height * k_scale;
+            const paneY = y_bottom - paneH;
+            
+            svg += `
+                <rect x="${currentX}" y="${paneY}" width="${paneW}" height="${paneH}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="3" />
+            `;
+            
+            const textX = currentX + (paneW / 2);
+            const textY = paneY + (paneH / 2);
+            drawPaneLabel(textX, textY, paneW, pane, idx + 1);
+
+            if (idx > 0) {
+                svg += `<line x1="${currentX}" y1="${y_top}" x2="${currentX}" y2="${y_bottom}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
+            }
+            currentX += paneW;
+        });
+    } 
+    else if (prop.type === 'column') {
+        let currentY = y_top;
+        prop.rows.forEach((rowPanes, idx) => {
+            const pane = rowPanes[0];
+            const paneW = pane.width * k_scale;
+            const paneH = pane.height * k_scale;
+            
+            svg += `
+                <rect x="${paddingX}" y="${currentY}" width="${paneW}" height="${paneH}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="3" />
+            `;
+            
+            const textX = paddingX + (paneW / 2);
+            const textY = currentY + (paneH / 2);
+            drawPaneLabel(textX, textY, paneW, pane, idx + 1);
+
+            if (idx > 0) {
+                svg += `<line x1="${paddingX}" y1="${currentY}" x2="${paddingX + paneW}" y2="${currentY}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
+            }
+            currentY += paneH;
+        });
+    }
+    else if (prop.type === 'two-rows') {
+        const h1 = prop.rows[0][0].height; 
+        const h2 = prop.rows[1][0].height; 
+        const h1_pixel = h1 * k_scale;
+        const h2_pixel = h2 * k_scale;
+        
+        // Fila 1 (superior)
+        let currentX1 = paddingX;
+        prop.rows[0].forEach((pane, idx) => {
+            const paneW = pane.width * k_scale;
+            svg += `
+                <rect x="${currentX1}" y="${y_top}" width="${paneW}" height="${h1_pixel}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="3" />
+            `;
+            drawPaneLabel(currentX1 + paneW/2, y_top + h1_pixel/2, paneW, pane, `1-${idx+1}`);
+            if (idx > 0) {
+                svg += `<line x1="${currentX1}" y1="${y_top}" x2="${currentX1}" y2="${y_top + h1_pixel}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
+            }
+            currentX1 += paneW;
+        });
+
+        // Fila 2 (inferior)
+        let currentX2 = paddingX;
+        const y2 = y_top + h1_pixel;
+        prop.rows[1].forEach((pane, idx) => {
+            const paneW = pane.width * k_scale;
+            svg += `
+                <rect x="${currentX2}" y="${y2}" width="${paneW}" height="${h2_pixel}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="3" />
+            `;
+            drawPaneLabel(currentX2 + paneW/2, y2 + h2_pixel/2, paneW, pane, `2-${idx+1}`);
+            if (idx > 0) {
+                svg += `<line x1="${currentX2}" y1="${y2}" x2="${currentX2}" y2="${y2 + h2_pixel}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
+            }
+            currentX2 += paneW;
+        });
+
+        // Unión horizontal entre filas
+        svg += `<line x1="${paddingX}" y1="${y2}" x2="${paddingX + Math.max(currentX1, currentX2) - paddingX}" y2="${y2}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
+    }
+    else if (prop.type === 'grid') {
+        const R = prop.rows.length;
+        const C = prop.rows[0].length;
+        const pane = prop.rows[0][0];
         const paneW = pane.width * k_scale;
         const paneH = pane.height * k_scale;
-        
-        // Alinear al fondo del vano (y = paddingY + outerH - paneH)
-        const paneY = paddingY + outerH - paneH;
-        
-        svg += `
-            <!-- Panel ${index + 1} -->
-            <rect x="${currentX}" y="${paneY}" width="${paneW}" height="${paneH}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="3" />
-        `;
-        
-        const textX = currentX + (paneW / 2);
-        const textY = paneY + (paneH / 2);
-        
-        if (paneW > 35) {
+
+        for (let r = 0; r < R; r++) {
+            const currentY = y_top + r * paneH;
+            for (let c = 0; c < C; c++) {
+                const currentX = paddingX + c * paneW;
+                svg += `
+                    <rect x="${currentX}" y="${currentY}" width="${paneW}" height="${paneH}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="3" />
+                `;
+                drawPaneLabel(currentX + paneW/2, currentY + paneH/2, paneW, pane, `${r+1}-${c+1}`);
+                
+                if (c > 0) {
+                    svg += `<line x1="${currentX}" y1="${currentY}" x2="${currentX}" y2="${currentY + paneH}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
+                }
+            }
+            if (r > 0) {
+                svg += `<line x1="${paddingX}" y1="${currentY}" x2="${paddingX + C * paneW}" y2="${currentY}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
+            }
+        }
+    }
+
+    function drawPaneLabel(x, y, paneW_pixel, pane, rank) {
+        if (paneW_pixel > 35) {
             svg += `
-                <text x="${textX}" y="${textY - 4}" font-size="8" font-weight="700" fill="#0369a1" text-anchor="middle" dominant-baseline="middle">${pane.product.ancho_cm}×${pane.product.alto_cm}</text>
-                <text x="${textX}" y="${textY + 6}" font-size="7" font-weight="600" fill="#0284c7" text-anchor="middle" dominant-baseline="middle">cm${pane.rotated ? ' (G)' : ''}</text>
+                <text x="${x}" y="${y - 4}" font-size="8" font-weight="700" fill="#0369a1" text-anchor="middle" dominant-baseline="middle">${pane.product.ancho_cm}×${pane.product.alto_cm}</text>
+                <text x="${x}" y="${y + 6}" font-size="7" font-weight="600" fill="#0284c7" text-anchor="middle" dominant-baseline="middle">cm${pane.rotated ? ' (G)' : ''}</text>
             `;
         } else {
             svg += `
-                <text x="${textX}" y="${textY}" font-size="8" font-weight="700" fill="#0369a1" text-anchor="middle" dominant-baseline="middle">${index + 1}</text>
+                <text x="${x}" y="${y}" font-size="8" font-weight="700" fill="#0369a1" text-anchor="middle" dominant-baseline="middle">${rank}</text>
             `;
         }
-        
-        // Línea de unión
-        if (index > 0) {
-            svg += `
-                <line x1="${currentX}" y1="${paddingY}" x2="${currentX}" y2="${paddingY + outerH}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />
-            `;
-        }
-        
-        currentX += paneW;
-    });
+    }
 
-    // 3. Cotas y leyendas
-    // Ancho total requerido
+    // 3. Dimensiones y acotaciones
     const labelW_X = paddingX + (outerW / 2);
     const labelW_Y = paddingY + outerH + 18;
     svg += `<text x="${labelW_X}" y="${labelW_Y}" font-size="9" font-weight="700" fill="#475569" text-anchor="middle">Vano: ${targetW} cm</text>`;
     
-    // Alto total requerido
     const labelH_X = paddingX - 10;
     const labelH_Y = paddingY + (outerH / 2);
     svg += `<text x="${labelH_X}" y="${labelH_Y}" font-size="9" font-weight="700" fill="#475569" text-anchor="middle" transform="rotate(-90 ${labelH_X} ${labelH_Y})">Vano: ${targetH} cm</text>`;
 
-    // Ancho cubierto
     const covW_X = paddingX + ((prop.totalWidth * k_scale) / 2);
     const covW_Y = paddingY - 10;
     svg += `<text x="${covW_X}" y="${covW_Y}" font-size="9" font-weight="700" fill="#0284c7" text-anchor="middle">Cubierto: ${prop.totalWidth.toFixed(1)} cm</text>`;
 
-    // Espacio faltante en ancho
     if (prop.totalWidth < targetW) {
         const remW = targetW - prop.totalWidth;
         const remW_pixel = remW * k_scale;
         const remX = paddingX + (prop.totalWidth * k_scale) + (remW_pixel / 2);
         const remY = paddingY + (outerH / 2);
-        
-        svg += `
-            <text x="${remX}" y="${remY}" font-size="8" font-weight="700" fill="#64748b" text-anchor="middle" transform="rotate(-90 ${remX} ${remY})">Faltan ${remW.toFixed(1)} cm</text>
-        `;
+        svg += `<text x="${remX}" y="${remY}" font-size="8" font-weight="700" fill="#64748b" text-anchor="middle" transform="rotate(-90 ${remX} ${remY})">Faltan ${remW.toFixed(1)} cm</text>`;
     }
 
-    // Espacio faltante en alto
     if (prop.totalHeight < targetH) {
         const remH = targetH - prop.totalHeight;
         const remH_pixel = remH * k_scale;
         const remX = paddingX + ((prop.totalWidth * k_scale) / 2);
         const remY = paddingY + (remH_pixel / 2);
-        
-        svg += `
-            <text x="${remX}" y="${remY}" font-size="8" font-weight="700" fill="#64748b" text-anchor="middle">Faltan ${remH.toFixed(1)} cm de alto</text>
-        `;
+        svg += `<text x="${remX}" y="${remY}" font-size="8" font-weight="700" fill="#64748b" text-anchor="middle">Faltan ${remH.toFixed(1)} cm de alto</text>`;
     }
 
     svg += `</svg>`;
     return svg;
 }
 
-// Agregar propuesta al carro de compras
+// Agregar propuesta al carro de compras v2
 window.addProposalToCart = function(serializedProposal) {
     try {
         const prop = JSON.parse(decodeURIComponent(serializedProposal));
@@ -1669,7 +2171,7 @@ window.addProposalToCart = function(serializedProposal) {
     }
 };
 
-// Cotizar propuesta en WhatsApp
+// Cotizar propuesta en WhatsApp v2
 window.quoteProposalOnWhatsApp = function(serializedProposal) {
     try {
         const prop = JSON.parse(decodeURIComponent(serializedProposal));
@@ -1692,17 +2194,26 @@ window.quoteProposalOnWhatsApp = function(serializedProposal) {
         let itemsText = '';
         Object.values(productCounts).forEach(item => {
             const rotText = item.rotated ? ' (Girado)' : '';
-            itemsText += `* ${item.qty} u × termopanel fijo de ${item.product.ancho_cm} x ${item.product.alto_cm} cm${rotText}\n`;
+            itemsText += `* ${item.qty} u × termopanel de ${item.product.ancho_cm} x ${item.product.alto_cm} cm${rotText}\n`;
         });
 
         const pricing = getCartPricing(prop.unitCount);
         const unitPriceText = `$${pricing.unitPrice.toLocaleString('es-CL')} c/u`;
         const totalPriceText = `$${prop.totalPrice.toLocaleString('es-CL')}`;
 
+        const distLabelMap = {
+            'row': 'Una fila horizontal',
+            'column': 'Columna única',
+            'two-rows': 'Dos filas (distribución combinada)',
+            'grid': 'Cuadrícula'
+        };
+        const distText = distLabelMap[prop.type] || prop.type;
+
         const message = `Hola, quiero cotizar la siguiente propuesta del Planificador de Cobertura:
 
 Espacio a cubrir: ${prop.totalWidth.toFixed(1)} cm de ancho × ${prop.totalHeight.toFixed(1)} cm de alto.
-Total cristales: ${prop.unitCount}
+Distribución: ${distText}
+Total cristales: ${prop.unitCount} paños
 
 Detalle de termopaneles sugeridos:
 ${itemsText}
