@@ -1,0 +1,23 @@
+{
+  "name": "termopaneles-el-monte",
+  "version": "1.0.0",
+  "description": "Catálogo online de termopaneles fijos con stock disponible",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/javieracarrizo2-ship-it/termopaneles-el-monte.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/javieracarrizo2-ship-it/termopaneles-el-monte/issues"
+  },
+  "homepage": "https://github.com/javieracarrizo2-ship-it/termopaneles-el-monte#readme",
+  "dependencies": {
+    "@vercel/speed-insights": "^2.0.0"
+  }
+}
