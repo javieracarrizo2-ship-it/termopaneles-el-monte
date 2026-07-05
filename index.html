@@ -15,6 +15,9 @@
       window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
     </script>
     <script defer src="/_vercel/speed-insights/script.js"></script>
+    
+    <!-- Link to Custom CSS -->
+    <link rel="stylesheet" href="index.css">
 </head>
 <body>
 
@@ -139,15 +142,17 @@
 
             <div class="planner-card">
                 <div class="planner-left-column">
-                    <div class="planner-instructions">
-                        <h3>📋 Cómo usar el planificador</h3>
-                        <ul>
-                            <li>📏 <strong>Medidas:</strong> Ingresa el ancho (máx. 600 cm) y alto (máx. 300 cm) del espacio.</li>
-                            <li>🪟 <strong>Paños:</strong> Limita la cantidad de divisiones que deseas para tu estructura.</li>
-                            <li>📐 <strong>Distribución:</strong> Puedes forzar una fila, dos filas o cuadrícula.</li>
-                            <li>⚙️ <strong>Prioridad:</strong> Prioriza menos divisiones o rellenar el espacio al máximo.</li>
-                        </ul>
-                    </div>
+                    <details class="planner-instructions" open>
+                        <summary>📋 Cómo usar el planificador</summary>
+                        <div class="planner-instructions-content">
+                            <ul>
+                                <li>📏 <strong>Medidas:</strong> Ingresa el ancho (máx. 600 cm) y alto (máx. 300 cm) del espacio.</li>
+                                <li>🪟 <strong>Paños:</strong> Limita la cantidad de divisiones que deseas para tu estructura.</li>
+                                <li>📐 <strong>Distribución:</strong> Puedes forzar una fila, dos filas o cuadrícula.</li>
+                                <li>⚙️ <strong>Prioridad:</strong> Prioriza menos divisiones o rellenar el espacio al máximo.</li>
+                            </ul>
+                        </div>
+                    </details>
 
                     <div class="planner-form">
                         <div class="calc-input-group">

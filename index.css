@@ -3011,3 +3011,155 @@ footer {
     font-weight: 700;
     padding: 12px 28px;
 }
+
+/* ==========================================================================
+   Mobile-First Optimization Improvements (Modern & Premium Mobile UI)
+   ========================================================================== */
+
+/* Native Details Accordion styling for instructions */
+.planner-instructions {
+    background-color: var(--color-bg);
+    border: 1px solid rgba(85, 107, 47, 0.12);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    display: block;
+}
+
+.planner-instructions summary {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    outline: none;
+    list-style: none;
+}
+
+.planner-instructions summary::-webkit-details-marker {
+    display: none;
+}
+
+.planner-instructions[open] summary {
+    border-bottom: 1px solid rgba(85, 107, 47, 0.05);
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+}
+
+/* Custom indicator on mobile screens */
+@media (max-width: 768px) {
+    .planner-instructions summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .planner-instructions summary::after {
+        content: '▼';
+        font-size: 0.75rem;
+        color: var(--color-olive);
+        transition: transform 0.2s ease;
+    }
+    .planner-instructions[open] summary::after {
+        transform: rotate(-180deg);
+    }
+}
+
+/* Responsiveness enhancements for screens below 768px */
+@media (max-width: 768px) {
+    .hero-img {
+        height: 220px; /* Make the hero illustration height more compact on mobile */
+    }
+    
+    .calculator-box {
+        padding: 20px;
+        border-radius: 16px;
+    }
+    
+    .planner-card {
+        padding: 20px;
+        border-radius: 16px;
+        gap: 24px;
+    }
+}
+
+/* 2-Column Catalog Grid layout on Mobile */
+@media (max-width: 640px) {
+    .products-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+    
+    .product-card {
+        padding: 12px !important;
+        border-radius: 12px !important;
+        gap: 8px !important;
+    }
+    
+    .glass-representation {
+        height: 110px !important;
+        margin-bottom: 10px !important;
+    }
+    
+    .product-size-title {
+        font-size: 1.05rem !important;
+        margin-bottom: 2px !important;
+    }
+    
+    .product-meters {
+        font-size: 0.75rem !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .product-details-list {
+        gap: 5px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .product-details-list li {
+        font-size: 0.75rem !important;
+        padding-bottom: 3px !important;
+    }
+    
+    .product-card-qty-row {
+        padding-top: 6px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .product-card-qty-row .qty-label {
+        font-size: 0.75rem !important;
+    }
+    
+    .product-qty-selector {
+        gap: 4px !important;
+    }
+    
+    .qty-btn {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .qty-val-input {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .product-actions {
+        gap: 6px !important;
+        margin-top: auto !important;
+    }
+    
+    .product-actions .cta-button {
+        padding: 8px 10px !important;
+        font-size: 0.78rem !important;
+        border-radius: 8px !important;
+    }
+    
+    .product-actions .cta-button svg {
+        width: 14px !important;
+        height: 14px !important;
+        margin-right: 4px !important;
+    }
+}

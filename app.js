@@ -1170,6 +1170,12 @@ function initPlanner() {
 
     if (!wInput || !hInput || !pInput || !dSelect || !prSelect || !tSelect || !rSelect || !plannerBtn || !resultsContainer) return;
 
+    // Collapse instructions on mobile by default
+    const instructions = document.querySelector('.planner-instructions');
+    if (instructions && window.innerWidth < 768) {
+        instructions.removeAttribute('open');
+    }
+
     plannerBtn.addEventListener('click', () => {
         const widthVal = parseFloat(wInput.value);
         const heightVal = parseFloat(hInput.value);
