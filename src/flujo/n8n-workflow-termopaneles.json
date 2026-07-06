@@ -53,7 +53,7 @@
           "responseHeaders": {
             "entries": [
               {
-                "name": "=Access-Control-Allow-Origin",
+                "name": "Access-Control-Allow-Origin",
                 "value": "https://termopaneles-el-monte-termo-s-projects.vercel.app"
               }
             ]
