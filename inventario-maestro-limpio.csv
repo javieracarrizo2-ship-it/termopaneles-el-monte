@@ -1,0 +1,106 @@
+id,tipo,ancho_cm,alto_cm,ancho_m,alto_m,unidades,estado,medida_cm,medida_m,descripcion,rack
+TPA054,Fijo,21.0,100.0,0.21,1.0,1,Bajo stock,21 x 100 cm,"0,21 x 1,0 m",Termopanel fijo 21 x 100 cm,Rack 1
+TPA106,Fijo,25.0,222.9,0.25,2.229,1,Bajo stock,25 x 222.9 cm,"0,25 x 2,229 m",Termopanel fijo 25 x 222.9 cm,Rack 4
+TPA107,Fijo,25.0,237.2,0.25,2.372,1,Bajo stock,25 x 237.2 cm,"0,25 x 2,372 m",Termopanel fijo 25 x 237.2 cm,Rack 4
+TPA108,Fijo,25.0,239.2,0.25,2.392,1,Bajo stock,25 x 239.2 cm,"0,25 x 2,392 m",Termopanel fijo 25 x 239.2 cm,Rack 4
+TPA029,Fijo,98.0,29.2,0.98,0.292,1,Bajo stock,98 x 29.2 cm,"0,98 x 0,292 m",Termopanel fijo 98 x 29.2 cm,Rack 1
+TPA005,Fijo,30.0,120.0,0.3,1.2,24,Disponible,30 x 120 cm,"0,3 x 1,2 m",Termopanel fijo 30 x 120 cm,Rack 1
+TPA101,Fijo,31.8,140.0,0.318,1.4,1,Bajo stock,31.8 x 140 cm,"0,318 x 1,4 m",Termopanel fijo 31.8 x 140 cm,Rack 3
+TPA102,Fijo,31.8,140.5,0.318,1.405,1,Bajo stock,31.8 x 140.5 cm,"0,318 x 1,405 m",Termopanel fijo 31.8 x 140.5 cm,Rack 3
+TPA103,Fijo,31.8,141.7,0.318,1.417,1,Bajo stock,31.8 x 141.7 cm,"0,318 x 1,417 m",Termopanel fijo 31.8 x 141.7 cm,Rack 3
+TPA010,Fijo,32.0,32.0,0.32,0.32,4,Bajo stock,32 x 32 cm,"0,32 x 0,32 m",Termopanel fijo 32 x 32 cm,Rack 4
+TPA097,Fijo,34.2,134.1,0.342,1.341,1,Bajo stock,34.2 x 134.1 cm,"0,342 x 1,341 m",Termopanel fijo 34.2 x 134.1 cm,Rack 3
+TPA021,Fijo,36.0,87.2,0.36,0.872,2,Bajo stock,36 x 87.2 cm,"0,36 x 0,872 m",Termopanel fijo 36 x 87.2 cm,Rack 1
+TPA085,Fijo,37.0,121.4,0.37,1.214,1,Bajo stock,37 x 121.4 cm,"0,37 x 1,214 m",Termopanel fijo 37 x 121.4 cm,Rack 3
+TPA040,Fijo,37.4,82.8,0.374,0.828,1,Bajo stock,37.4 x 82.8 cm,"0,374 x 0,828 m",Termopanel fijo 37.4 x 82.8 cm,Rack 1
+TPA051,Fijo,38.0,98.0,0.38,0.98,1,Bajo stock,38 x 98 cm,"0,38 x 0,98 m",Termopanel fijo 38 x 98 cm,Rack 1
+TPA032,Fijo,39.0,73.0,0.39,0.73,1,Bajo stock,39 x 73 cm,"0,39 x 0,73 m",Termopanel fijo 39 x 73 cm,Rack 1
+TPA004,Fijo,39.0,82.0,0.39,0.82,27,Disponible,39 x 82 cm,"0,39 x 0,82 m",Termopanel fijo 39 x 82 cm,"Rack 1, Rack 5"
+TPA080,Fijo,39.0,120.0,0.39,1.2,1,Bajo stock,39 x 120 cm,"0,39 x 1,2 m",Termopanel fijo 39 x 120 cm,Rack 3
+TPA018,Fijo,40.0,87.0,0.4,0.87,2,Bajo stock,40 x 87 cm,"0,4 x 0,87 m",Termopanel fijo 40 x 87 cm,Rack 4
+TPA100,Fijo,40.4,139.5,0.404,1.395,1,Bajo stock,40.4 x 139.5 cm,"0,404 x 1,395 m",Termopanel fijo 40.4 x 139.5 cm,Rack 3
+TPA009,Fijo,40.8,87.0,0.408,0.87,10,Disponible,40.8 x 87 cm,"0,408 x 0,87 m",Termopanel fijo 40.8 x 87 cm,Rack 5
+TPA071,Fijo,41.0,119.0,0.41,1.19,1,Bajo stock,41 x 119 cm,"0,41 x 1,19 m",Termopanel fijo 41 x 119 cm,Rack 3
+TPA081,Fijo,41.0,120.0,0.41,1.2,1,Bajo stock,41 x 120 cm,"0,41 x 1,2 m",Termopanel fijo 41 x 120 cm,Rack 3
+TPA077,Fijo,41.4,119.5,0.414,1.195,1,Bajo stock,41.4 x 119.5 cm,"0,414 x 1,195 m",Termopanel fijo 41.4 x 119.5 cm,Rack 3
+TPA082,Fijo,43.0,120.0,0.43,1.2,1,Bajo stock,43 x 120 cm,"0,43 x 1,2 m",Termopanel fijo 43 x 120 cm,Rack 3
+TPA026,Fijo,44.0,108.0,0.44,1.08,2,Bajo stock,44 x 108 cm,"0,44 x 1,08 m",Termopanel fijo 44 x 108 cm,Rack 4
+TPA078,Fijo,44.0,119.9,0.44,1.199,1,Bajo stock,44 x 119.9 cm,"0,44 x 1,199 m",Termopanel fijo 44 x 119.9 cm,Rack 3
+TPA007,Fijo,44.2,95.2,0.442,0.952,20,Disponible,44.2 x 95.2 cm,"0,442 x 0,952 m",Termopanel fijo 44.2 x 95.2 cm,Rack 3
+TPA030,Fijo,139.9,44.9,1.399,0.449,1,Bajo stock,139.9 x 44.9 cm,"1,399 x 0,449 m",Termopanel fijo 139.9 x 44.9 cm,Rack 3
+TPA065,Fijo,45.0,110.0,0.45,1.1,1,Bajo stock,45 x 110 cm,"0,45 x 1,1 m",Termopanel fijo 45 x 110 cm,Rack 4
+TPA083,Fijo,45.0,120.1,0.45,1.201,1,Bajo stock,45 x 120.1 cm,"0,45 x 1,201 m",Termopanel fijo 45 x 120.1 cm,Rack 3
+TPA093,Fijo,45.5,130.6,0.455,1.306,1,Bajo stock,45.5 x 130.6 cm,"0,455 x 1,306 m",Termopanel fijo 45.5 x 130.6 cm,Rack 3
+TPA066,Fijo,46.0,110.0,0.46,1.1,1,Bajo stock,46 x 110 cm,"0,46 x 1,1 m",Termopanel fijo 46 x 110 cm,Rack 4
+TPA072,Fijo,46.0,119.0,0.46,1.19,1,Bajo stock,46 x 119 cm,"0,46 x 1,19 m",Termopanel fijo 46 x 119 cm,Rack 3
+TPA028,Fijo,46.2,184.6,0.462,1.846,1,Bajo stock,46.2 x 184.6 cm,"0,462 x 1,846 m",Termopanel fijo 46.2 x 184.6 cm,Rack 3
+TPA015,Fijo,46.6,77.6,0.466,0.776,2,Bajo stock,46.6 x 77.6 cm,"0,466 x 0,776 m",Termopanel fijo 46.6 x 77.6 cm,Rack 1
+TPA017,Fijo,47.0,86.0,0.47,0.86,2,Bajo stock,47 x 86 cm,"0,47 x 0,86 m",Termopanel fijo 47 x 86 cm,Rack 1
+TPA042,Fijo,47.0,87.0,0.47,0.87,1,Bajo stock,47 x 87 cm,"0,47 x 0,87 m",Termopanel fijo 47 x 87 cm,Rack 1
+TPA062,Fijo,47.0,108.0,0.47,1.08,1,Bajo stock,47 x 108 cm,"0,47 x 1,08 m",Termopanel fijo 47 x 108 cm,Rack 3
+TPA027,Fijo,47.0,116.0,0.47,1.16,2,Bajo stock,47 x 116 cm,"0,47 x 1,16 m",Termopanel fijo 47 x 116 cm,Rack 3
+TPA049,Fijo,48.6,95.5,0.486,0.955,1,Bajo stock,48.6 x 95.5 cm,"0,486 x 0,955 m",Termopanel fijo 48.6 x 95.5 cm,Rack 1
+TPA087,Fijo,48.7,123.2,0.487,1.232,1,Bajo stock,48.7 x 123.2 cm,"0,487 x 1,232 m",Termopanel fijo 48.7 x 123.2 cm,Rack 4
+TPA001,Fijo,49.0,82.0,0.49,0.82,703,Disponible,49 x 82 cm,"0,49 x 0,82 m",Termopanel fijo 49 x 82 cm,"Rack 1, Rack 3, Rack 4, Rack 5"
+TPA073,Fijo,49.0,119.0,0.49,1.19,1,Bajo stock,49 x 119 cm,"0,49 x 1,19 m",Termopanel fijo 49 x 119 cm,Rack 3
+TPA094,Fijo,49.0,133.0,0.49,1.33,1,Bajo stock,49 x 133 cm,"0,49 x 1,33 m",Termopanel fijo 49 x 133 cm,Rack 3
+TPA098,Fijo,49.0,138.0,0.49,1.38,1,Bajo stock,49 x 138 cm,"0,49 x 1,38 m",Termopanel fijo 49 x 138 cm,Rack 4
+TPA089,Fijo,49.6,128.1,0.496,1.281,1,Bajo stock,49.6 x 128.1 cm,"0,496 x 1,281 m",Termopanel fijo 49.6 x 128.1 cm,Rack 3
+TPA096,Fijo,49.8,133.5,0.498,1.335,1,Bajo stock,49.8 x 133.5 cm,"0,498 x 1,335 m",Termopanel fijo 49.8 x 133.5 cm,Rack 3
+TPA095,Fijo,49.9,133.1,0.499,1.331,1,Bajo stock,49.9 x 133.1 cm,"0,499 x 1,331 m",Termopanel fijo 49.9 x 133.1 cm,Rack 3
+TPA039,Fijo,50.0,82.0,0.5,0.82,1,Bajo stock,50 x 82 cm,"0,5 x 0,82 m",Termopanel fijo 50 x 82 cm,Rack 4
+TPA041,Fijo,50.0,83.0,0.5,0.83,1,Bajo stock,50 x 83 cm,"0,5 x 0,83 m",Termopanel fijo 50 x 83 cm,Rack 1
+TPA074,Fijo,50.0,119.0,0.5,1.19,1,Bajo stock,50 x 119 cm,"0,5 x 1,19 m",Termopanel fijo 50 x 119 cm,Rack 3
+TPA091,Fijo,50.0,129.3,0.5,1.293,1,Bajo stock,50 x 129.3 cm,"0,5 x 1,293 m",Termopanel fijo 50 x 129.3 cm,Rack 3
+TPA092,Fijo,51.6,129.6,0.516,1.296,1,Bajo stock,51.6 x 129.6 cm,"0,516 x 1,296 m",Termopanel fijo 51.6 x 129.6 cm,Rack 3
+TPA019,Fijo,51.8,87.0,0.518,0.87,2,Bajo stock,51.8 x 87 cm,"0,518 x 0,87 m",Termopanel fijo 51.8 x 87 cm,Rack 1
+TPA020,Fijo,52.0,87.0,0.52,0.87,2,Bajo stock,52 x 87 cm,"0,52 x 0,87 m",Termopanel fijo 52 x 87 cm,Rack 3
+TPA022,Fijo,52.0,88.0,0.52,0.88,2,Bajo stock,52 x 88 cm,"0,52 x 0,88 m",Termopanel fijo 52 x 88 cm,Rack 4
+TPA090,Fijo,52.1,128.9,0.521,1.289,1,Bajo stock,52.1 x 128.9 cm,"0,521 x 1,289 m",Termopanel fijo 52.1 x 128.9 cm,Rack 3
+TPA035,Fijo,53.0,77.7,0.53,0.777,1,Bajo stock,53 x 77.7 cm,"0,53 x 0,777 m",Termopanel fijo 53 x 77.7 cm,Rack 1
+TPA061,Fijo,53.0,107.3,0.53,1.073,1,Bajo stock,53 x 107.3 cm,"0,53 x 1,073 m",Termopanel fijo 53 x 107.3 cm,Rack 1
+TPA002,Fijo,53.6,107.3,0.536,1.073,85,Disponible,53.6 x 107.3 cm,"0,536 x 1,073 m",Termopanel fijo 53.6 x 107.3 cm,"Rack 3, Rack 4"
+TPA036,Fijo,54.0,78.0,0.54,0.78,1,Bajo stock,54 x 78 cm,"0,54 x 0,78 m",Termopanel fijo 54 x 78 cm,Rack 4
+TPA024,Fijo,54.0,90.0,0.54,0.9,2,Bajo stock,54 x 90 cm,"0,54 x 0,9 m",Termopanel fijo 54 x 90 cm,Rack 4
+TPA013,Fijo,54.0,107.0,0.54,1.07,3,Bajo stock,54 x 107 cm,"0,54 x 1,07 m",Termopanel fijo 54 x 107 cm,Rack 1
+TPA069,Fijo,54.0,111.4,0.54,1.114,1,Bajo stock,54 x 111.4 cm,"0,54 x 1,114 m",Termopanel fijo 54 x 111.4 cm,Rack 4
+TPA012,Fijo,54.4,97.0,0.544,0.97,3,Bajo stock,54.4 x 97 cm,"0,544 x 0,97 m",Termopanel fijo 54.4 x 97 cm,Rack 1
+TPA033,Fijo,54.6,76.3,0.546,0.763,1,Bajo stock,54.6 x 76.3 cm,"0,546 x 0,763 m",Termopanel fijo 54.6 x 76.3 cm,Rack 1
+TPA016,Fijo,55.0,78.0,0.55,0.78,2,Bajo stock,55 x 78 cm,"0,55 x 0,78 m",Termopanel fijo 55 x 78 cm,Rack 1
+TPA044,Fijo,55.0,88.0,0.55,0.88,1,Bajo stock,55 x 88 cm,"0,55 x 0,88 m",Termopanel fijo 55 x 88 cm,Rack 4
+TPA045,Fijo,55.0,90.0,0.55,0.9,1,Bajo stock,55 x 90 cm,"0,55 x 0,9 m",Termopanel fijo 55 x 90 cm,Rack 4
+TPA064,Fijo,55.0,109.0,0.55,1.09,1,Bajo stock,55 x 109 cm,"0,55 x 1,09 m",Termopanel fijo 55 x 109 cm,Rack 4
+TPA075,Fijo,56.0,119.0,0.56,1.19,1,Bajo stock,56 x 119 cm,"0,56 x 1,19 m",Termopanel fijo 56 x 119 cm,Rack 3
+TPA037,Fijo,57.6,78.0,0.576,0.78,1,Bajo stock,57.6 x 78 cm,"0,576 x 0,78 m",Termopanel fijo 57.6 x 78 cm,Rack 1
+TPA104,Fijo,58.5,144.0,0.585,1.44,1,Bajo stock,58.5 x 144 cm,"0,585 x 1,44 m",Termopanel fijo 58.5 x 144 cm,Rack 4
+TPA047,Fijo,58.6,93.0,0.586,0.93,1,Bajo stock,58.6 x 93 cm,"0,586 x 0,93 m",Termopanel fijo 58.6 x 93 cm,Rack 1
+TPA003,Fijo,59.0,102.0,0.59,1.02,35,Disponible,59 x 102 cm,"0,59 x 1,02 m",Termopanel fijo 59 x 102 cm,"Rack 1, Rack 5"
+TPA059,Fijo,59.0,103.0,0.59,1.03,1,Bajo stock,59 x 103 cm,"0,59 x 1,03 m",Termopanel fijo 59 x 103 cm,Rack 1
+TPA068,Fijo,59.0,110.8,0.59,1.108,1,Bajo stock,59 x 110.8 cm,"0,59 x 1,108 m",Termopanel fijo 59 x 110.8 cm,Rack 1
+TPA011,Fijo,59.1,74.8,0.591,0.748,3,Bajo stock,59.1 x 74.8 cm,"0,591 x 0,748 m",Termopanel fijo 59.1 x 74.8 cm,Rack 1
+TPA058,Fijo,59.1,102.0,0.591,1.02,1,Bajo stock,59.1 x 102 cm,"0,591 x 1,02 m",Termopanel fijo 59.1 x 102 cm,Rack 4
+TPA088,Fijo,59.8,124.4,0.598,1.244,1,Bajo stock,59.8 x 124.4 cm,"0,598 x 1,244 m",Termopanel fijo 59.8 x 124.4 cm,Rack 1
+TPA052,Fijo,60.0,98.0,0.6,0.98,1,Bajo stock,60 x 98 cm,"0,6 x 0,98 m",Termopanel fijo 60 x 98 cm,Rack 1
+TPA070,Fijo,60.0,118.0,0.6,1.18,1,Bajo stock,60 x 118 cm,"0,6 x 1,18 m",Termopanel fijo 60 x 118 cm,Rack 1
+TPA076,Fijo,60.0,119.0,0.6,1.19,1,Bajo stock,60 x 119 cm,"0,6 x 1,19 m",Termopanel fijo 60 x 119 cm,Rack 3
+TPA079,Fijo,60.0,119.9,0.6,1.199,1,Bajo stock,60 x 119.9 cm,"0,6 x 1,199 m",Termopanel fijo 60 x 119.9 cm,Rack 1
+TPA099,Fijo,60.0,139.0,0.6,1.39,1,Bajo stock,60 x 139 cm,"0,6 x 1,39 m",Termopanel fijo 60 x 139 cm,Rack 4
+TPA046,Fijo,61.0,92.0,0.61,0.92,1,Bajo stock,61 x 92 cm,"0,61 x 0,92 m",Termopanel fijo 61 x 92 cm,Rack 4
+TPA060,Fijo,61.0,103.0,0.61,1.03,1,Bajo stock,61 x 103 cm,"0,61 x 1,03 m",Termopanel fijo 61 x 103 cm,Rack 4
+TPA050,Fijo,61.7,97.0,0.617,0.97,1,Bajo stock,61.7 x 97 cm,"0,617 x 0,97 m",Termopanel fijo 61.7 x 97 cm,Rack 1
+TPA025,Fijo,64.0,94.0,0.64,0.94,2,Bajo stock,64 x 94 cm,"0,64 x 0,94 m",Termopanel fijo 64 x 94 cm,Rack 4
+TPA038,Fijo,66.0,80.0,0.66,0.8,1,Bajo stock,66 x 80 cm,"0,66 x 0,8 m",Termopanel fijo 66 x 80 cm,Rack 1
+TPA086,Fijo,66.4,121.8,0.664,1.218,1,Bajo stock,66.4 x 121.8 cm,"0,664 x 1,218 m",Termopanel fijo 66.4 x 121.8 cm,Rack 1
+TPA043,Fijo,68.0,87.0,0.68,0.87,1,Bajo stock,68 x 87 cm,"0,68 x 0,87 m",Termopanel fijo 68 x 87 cm,Rack 1
+TPA006,Fijo,69.0,87.0,0.69,0.87,21,Disponible,69 x 87 cm,"0,69 x 0,87 m",Termopanel fijo 69 x 87 cm,Rack 3
+TPA008,Fijo,69.0,88.0,0.69,0.88,18,Disponible,69 x 88 cm,"0,69 x 0,88 m",Termopanel fijo 69 x 88 cm,Rack 5
+TPA053,Fijo,69.0,99.0,0.69,0.99,1,Bajo stock,69 x 99 cm,"0,69 x 0,99 m",Termopanel fijo 69 x 99 cm,Rack 4
+TPA031,Fijo,77.0,69.2,0.77,0.692,1,Bajo stock,77 x 69.2 cm,"0,77 x 0,692 m",Termopanel fijo 77 x 69.2 cm,Rack 1
+TPA034,Fijo,70.0,77.0,0.7,0.77,1,Bajo stock,70 x 77 cm,"0,7 x 0,77 m",Termopanel fijo 70 x 77 cm,Rack 4
+TPA057,Fijo,71.0,101.0,0.71,1.01,1,Bajo stock,71 x 101 cm,"0,71 x 1,01 m",Termopanel fijo 71 x 101 cm,Rack 4
+TPA084,Fijo,72.0,120.4,0.72,1.204,1,Bajo stock,72 x 120.4 cm,"0,72 x 1,204 m",Termopanel fijo 72 x 120.4 cm,Rack 1
+TPA048,Fijo,75.0,94.0,0.75,0.94,1,Bajo stock,75 x 94 cm,"0,75 x 0,94 m",Termopanel fijo 75 x 94 cm,Rack 1
+TPA014,Fijo,79.0,235.1,0.79,2.351,3,Bajo stock,79 x 235.1 cm,"0,79 x 2,351 m",Termopanel fijo 79 x 235.1 cm,Rack metal
+TPA063,Fijo,87.0,108.0,0.87,1.08,1,Bajo stock,87 x 108 cm,"0,87 x 1,08 m",Termopanel fijo 87 x 108 cm,Rack metal
+TPA056,Fijo,88.9,100.5,0.889,1.005,1,Bajo stock,88.9 x 100.5 cm,"0,889 x 1,005 m",Termopanel fijo 88.9 x 100.5 cm,Rack 1
+TPA067,Fijo,89.6,110.0,0.896,1.1,1,Bajo stock,89.6 x 110 cm,"0,896 x 1,1 m",Termopanel fijo 89.6 x 110 cm,Rack metal

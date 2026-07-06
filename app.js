@@ -6,7 +6,7 @@
 // Configuration
 const CONFIG = {
     csvPath: 'inventario-termopaneles-landing.csv',
-    googleSheetUrl: '', // Pega aquí el enlace de Google Sheets publicado como CSV
+    googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSeHty4SN7j5L3ypMmiOSSlGYGOnd_qkU8LTwRO1aC55yZXMzPxdIQJ4MRQ6auYdhxpoMuS1R9nj_Ft/pub?output=csv', // Pega aquí el enlace de Google Sheets publicado como CSV
     whatsappNumber: '56977445451', // Chilean business WhatsApp number (+56 9 ...)
     lowStockThreshold: 5
 };
@@ -489,7 +489,7 @@ function renderGrid() {
 }
 
 // Direct purchase action on WhatsApp for a single product card
-window.buyProductDirectly = function(productId) {
+window.buyProductDirectly = async function(productId) {
     const product = appState.products.find(p => p.id === productId);
     if (!product) return;
     
@@ -503,15 +503,52 @@ window.buyProductDirectly = function(productId) {
         formaText = ' con forma inclinada (trapecio)';
     }
     
-    const message = `Hola, quiero cotizar un termopanel fijo de medida ${product.ancho_cm} x ${product.alto_cm} cm.
+    let message = `Hola, quiero cotizar un termopanel fijo de medida ${product.ancho_cm} x ${product.alto_cm} cm.
 
 Necesito cotizar ${qty} unidad(es).
 
 Quedo atento/a al precio y disponibilidad actual. Gracias.`;
 
+    // 1. Abrir ventana nueva en blanco primero
+    const newWindow = window.open('about:blank', '_blank');
+    if (!newWindow) {
+        console.warn('Popup blocker prevented opening window');
+    }
+
+    try {
+        // 2. Hacer fetch POST a la URL con AbortSignal.timeout
+        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ancho_cm: product.ancho_cm,
+                alto_cm: product.alto_cm,
+                qty: qty,
+                origen: 'catalogo_individual'
+            }),
+            signal: AbortSignal.timeout(4000)
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.mensaje_sugerido) {
+                message = data.mensaje_sugerido;
+            }
+        }
+    } catch (error) {
+        console.error('Error or timeout sending quote to webhook:', error);
+    }
+
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
-    window.open(whatsappUrl, '_blank');
+
+    if (newWindow) {
+        newWindow.location.href = whatsappUrl;
+    } else {
+        window.open(whatsappUrl, '_blank');
+    }
 };
 
 // Render Stats at bottom of filters
@@ -890,7 +927,7 @@ function updateCartUI() {
 }
 
 // Generate consolidated WhatsApp quote link
-function checkoutCart() {
+async function checkoutCart() {
     if (appState.cart.length === 0) return;
 
     const totalUnits = appState.cart.reduce((sum, item) => sum + item.qty, 0);
@@ -906,22 +943,56 @@ function checkoutCart() {
     });
 
     const priceAppliedText = `$${pricing.unitPrice.toLocaleString('es-CL')} c/u`;
-    const totalEstimatedText = `$${(totalUnits * pricing.priceLabel).toLocaleString('es-CL')}`; // Wait, pricing.totalEstimated or use custom calculation
     const totalCalc = totalUnits * pricing.unitPrice;
     const totalCalcText = `$${totalCalc.toLocaleString('es-CL')}`;
 
-    const message = `Hola, quiero cotizar los siguientes termopaneles:
+    let message = `Hola, quiero cotizar los siguientes termopaneles:
 
 ${itemsText}
 Total unidades: ${totalUnits}
 Precio unitario aplicado: ${priceAppliedText}
 Total: ${totalCalcText}`;
 
+    // 1. Abrir ventana nueva en blanco primero
+    const newWindow = window.open('about:blank', '_blank');
+    if (!newWindow) {
+        console.warn('Popup blocker prevented opening window');
+    }
+
+    try {
+        // 2. Hacer fetch POST a la URL con AbortSignal.timeout
+        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                items: appState.cart,
+                totalUnits,
+                totalCalc,
+                origen: 'carrito'
+            }),
+            signal: AbortSignal.timeout(4000)
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.mensaje_sugerido) {
+                message = data.mensaje_sugerido;
+            }
+        }
+    } catch (error) {
+        console.error('Error or timeout sending quote to webhook:', error);
+    }
+
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
 
-    // Open WhatsApp in a new tab
-    window.open(whatsappUrl, '_blank');
+    if (newWindow) {
+        newWindow.location.href = whatsappUrl;
+    } else {
+        window.open(whatsappUrl, '_blank');
+    }
 }
 
 // Carousel initialization for Real Stock photos
