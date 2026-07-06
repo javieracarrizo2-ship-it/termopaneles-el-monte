@@ -4,7 +4,7 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "termopaneles/consultar-stock",
+        "path": "cotizar-termopanel",
         "responseMode": "responseNode",
         "options": {
           "cors": true,
