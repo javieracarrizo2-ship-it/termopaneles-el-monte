@@ -6,7 +6,10 @@
         "httpMethod": "POST",
         "path": "cotizar-termopanel",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {
+          "cors": true,
+          "allowedOrigins": "https://termopaneles-el-monte.vercel.app, http://localhost:3000, http://localhost:5173, http://localhost:8080"
+        }
       },
       "id": "6ba660d2-8f80-446c-97f6-ee48230a08ff",
       "name": "Webhook",
@@ -139,6 +142,7 @@
         },
         "options": {}
       },
+      "continueOnFail": true,
       "id": "58f972b2-658b-4a57-b08e-f14bf76e5d28",
       "name": "Google Sheets: Registrar Consulta",
       "type": "n8n-nodes-base.googleSheets",
