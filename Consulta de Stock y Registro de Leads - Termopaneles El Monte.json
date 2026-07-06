@@ -38,7 +38,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "function parseCSV(text) {\n    const lines = text.split(/\\r?\\n/);\n    if (lines.length === 0 || !lines[0]) return [];\n    \n    const headers = lines[0].split(',').map(h => h.trim());\n    const result = [];\n    \n    for (let i = 1; i < lines.length; i++) {\n        const line = lines[i].trim();\n        if (!line) continue;\n        \n        const row = [];\n        let inQuotes = false;\n        let currentValue = '';\n        \n        for (let j = 0; j < line.length; j++) {\n            const char = line[j];\n            if (char === '\"') {\n                inQuotes = !inQuotes;\n            } else if (char === ',' && !inQuotes) {\n                row.push(currentValue.trim());\n                currentValue = '';\n            } else {\n                currentValue += char;\n            }\n        }\n        row.push(currentValue.trim());\n        \n        if (row.length >= headers.length) {\n            const obj = {};\n            headers.forEach((header, index) => {\n                let val = row[index];\n                if (val && val.startsWith('\"') && val.endsWith('\"')) {\n                    val = val.substring(1, val.length - 1);\n                }\n                obj[header] = val;\n            });\n            result.push(obj);\n        }\n    }\n    return result;\n}\n\nconst webhookInput = $('Webhook').first().json.body || $('Webhook').first().json || {};\nconst csvText = $('Fetch Inventory CSV').first().json.data || '';\n\nconst inventory = parseCSV(csvText).map(row => {\n    return {\n        id: row.id || '',\n        ancho_cm: parseFloat(row.ancho_cm) || 0,\n        alto_cm: parseFloat(row.alto_cm) || 0,\n        unidades: parseInt(row.unidades, 10) || 0,\n        rack: row.rack || '',\n        estado: row.estado || ''\n    };\n});\n\nlet itemsToQuote = [];\nlet totalUnits = 0;\n\nif (webhookInput.origen === 'carrito' && Array.isArray(webhookInput.items)) {\n    itemsToQuote = webhookInput.items.map(item => ({\n        ancho_cm: parseFloat(item.ancho_cm),\n        alto_cm: parseFloat(item.alto_cm),\n        qty: parseInt(item.qty, 10) || 1\n    }));\n} else if (webhookInput.ancho_cm && webhookInput.alto_cm) {\n    itemsToQuote = [{\n        ancho_cm: parseFloat(webhookInput.ancho_cm),\n        alto_cm: parseFloat(webhookInput.alto_cm),\n        qty: parseInt(webhookInput.qty, 10) || 1\n    }];\n} else {\n    const msg = webhookInput.message || webhookInput.text || '';\n    const match = msg.match(/(\\d+(?:\\.\\d+)?)\\s*x\\s*(\\d+(?:\\.\\d+)?)/i);\n    if (match) {\n        const qtyMatch = msg.match(/(?:necesito|quiero|cantidad|unidades|qty)?\\s*(\\\\d+)\\s*(?:unidad|unidades|termo|termopanel)/i) || [null, \"1\"];\n        itemsToQuote = [{\n            ancho_cm: parseFloat(match[1]),\n            alto_cm: parseFloat(match[2]),\n            qty: parseInt(qtyMatch[1], 10) || 1\n        }];\n    }\n}\n\ntotalUnits = itemsToQuote.reduce((sum, item) => sum + item.qty, 0);\n\nlet unitPrice = 25000;\nlet discountLabel = 'Precio minorista normal';\nif (totalUnits >= 40) {\n    unitPrice = 15000;\n    discountLabel = 'Precio súper mayorista (40+ unidades)';\n} else if (totalUnits >= 10) {\n    unitPrice = 20000;\n    discountLabel = 'Precio mayorista (10-39 unidades)';\n}\n\nconst itemsSummary = itemsToQuote.map(req => {\n    const match = inventory.find(inv => \n        Math.abs(inv.ancho_cm - req.ancho_cm) <= 1.5 && \n        Math.abs(inv.alto_cm - req.alto_cm) <= 1.5 &&\n        inv.unidades > 0\n    );\n    \n    const availableStock = match ? match.unidades : 0;\n    const rackLocation = match ? match.rack : 'No especificado';\n    const status = availableStock >= req.qty ? 'Disponible' : (availableStock > 0 ? 'Stock Insuficiente' : 'Sin Stock');\n    \n    return {\n        ancho_cm: req.ancho_cm,\n        alto_cm: req.alto_cm,\n        solicitado: req.qty,\n        stock_disponible: availableStock,\n        rack: rackLocation,\n        estado: status,\n        total_item_precio: req.qty * unitPrice\n    };\n});\n\nconst allAvailable = itemsSummary.length > 0 && itemsSummary.every(item => item.estado === 'Disponible');\nconst totalCalc = totalUnits * unitPrice;\n\nreturn {\n    origen: webhookInput.origen || 'whatsapp_directo',\n    totalUnits,\n    unitPrice,\n    totalCalc,\n    discountLabel,\n    itemsSummary,\n    allAvailable,\n    clientPhone: webhookInput.from || webhookInput.sender || ''\n};"
+        "jsCode": "function parseCSV(text) {\n    const lines = text.split(/\\r?\\n/);\n    if (lines.length === 0 || !lines[0]) return [];\n    \n    const headers = lines[0].split(',').map(h => h.trim());\n    const result = [];\n    \n    for (let i = 1; i < lines.length; i++) {\n        const line = lines[i].trim();\n        if (!line) continue;\n        \n        const row = [];\n        let inQuotes = false;\n        let currentValue = '';\n        \n        for (let j = 0; j < line.length; j++) {\n            const char = line[j];\n            if (char === '\"') {\n                inQuotes = !inQuotes;\n            } else if (char === ',' && !inQuotes) {\n                row.push(currentValue.trim());\n                currentValue = '';\n            } else {\n                currentValue += char;\n            }\n        }\n        row.push(currentValue.trim());\n        \n        if (row.length >= headers.length) {\n            const obj = {};\n            headers.forEach((header, index) => {\n                let val = row[index];\n                if (val && val.startsWith('\"') && val.endsWith('\"')) {\n                    val = val.substring(1, val.length - 1);\n                }\n                obj[header] = val;\n            });\n            result.push(obj);\n        }\n    }\n    return result;\n}\n\nconst webhookInput = $('Webhook').first().json.body || $('Webhook').first().json || {};\nconst csvText = $('Fetch Inventory CSV').first().json.data || '';\n\nconst inventory = parseCSV(csvText).map(row => {\n    return {\n        id: row.id || '',\n        ancho_cm: parseFloat(row.ancho_cm) || 0,\n        alto_cm: parseFloat(row.alto_cm) || 0,\n        unidades: parseInt(row.unidades, 10) || 0,\n        rack: row.rack || '',\n        estado: row.estado || ''\n    };\n});\n\nlet itemsToQuote = [];\nlet totalUnits = 0;\n\nif (webhookInput.origen === 'carrito' && Array.isArray(webhookInput.items)) {\n    itemsToQuote = webhookInput.items.map(item => ({\n        ancho_cm: parseFloat(item.ancho_cm),\n        alto_cm: parseFloat(item.alto_cm),\n        qty: parseInt(item.qty, 10) || 1\n    }));\n} else if (webhookInput.ancho_cm && webhookInput.alto_cm) {\n    itemsToQuote = [{\n        ancho_cm: parseFloat(webhookInput.ancho_cm),\n        alto_cm: parseFloat(webhookInput.alto_cm),\n        qty: parseInt(webhookInput.qty, 10) || 1\n    }];\n} else {\n    const msg = webhookInput.message || webhookInput.text || '';\n    const match = msg.match(/(\\d+(?:\\.\\d+)?)\\s*x\\s*(\\d+(?:\\.\\d+)?)/i);\n    if (match) {\n        const qtyMatch = msg.match(/(?:necesito|quiero|cantidad|unidades|qty)?\\s*(\\\\d+)\\s*(?:unidad|unidades|termo|termopanel)/i) || [null, \"1\"];\n        itemsToQuote = [{\n            ancho_cm: parseFloat(match[1]),\n            alto_cm: parseFloat(match[2]),\n            qty: parseInt(qtyMatch[1], 10) || 1\n        }];\n    }\n}\n\ntotalUnits = itemsToQuote.reduce((sum, item) => sum + item.qty, 0);\n\nlet unitPrice = 25000;\nlet discountLabel = 'Precio minorista normal';\nif (totalUnits >= 40) {\n    unitPrice = 15000;\n    discountLabel = 'Precio súper mayorista (40+ unidades)';\n} else if (totalUnits >= 10) {\n    unitPrice = 20000;\n    discountLabel = 'Precio mayorista (10-39 unidades)';\n}\n\nconst itemsSummary = itemsToQuote.map(req => {\n    const match = inventory.find(inv => \n        Math.abs(inv.ancho_cm - req.ancho_cm) <= 1.5 && \n        Math.abs(inv.alto_cm - req.alto_cm) <= 1.5 &&\n        inv.unidades > 0\n    );\n    \n    const availableStock = match ? match.unidades : 0;\n    const rackLocation = match ? match.rack : 'No especificado';\n    const status = availableStock >= req.qty ? 'Disponible' : (availableStock > 0 ? 'Stock Insuficiente' : 'Sin Stock');\n    \n    return {\n        ancho_cm: req.ancho_cm,\n        alto_cm: req.alto_cm,\n        solicitado: req.qty,\n        stock_disponible: availableStock,\n        rack: rackLocation,\n        estado: status,\n        total_item_precio: req.qty * unitPrice\n    };\n});\n\nconst allAvailable = itemsSummary.length > 0 && itemsSummary.every(item => item.estado === 'Disponible');\nconst totalCalc = totalUnits * unitPrice;\n\nreturn {\n    origen: webhookInput.origen || 'whatsapp_directo',\n    totalUnits,\n    unitPrice,\n    totalCalc,\n    discountLabel,\n    itemsSummary,\n    allAvailable,\n    clientPhone: webhookInput.from || webhookInput.sender || '',\n    clientEmail: webhookInput.email || ''\n};"
       },
       "id": "a7de15a0-23c4-4106-8025-700912f082fd",
       "name": "Parse & Calculate Stock/Price",
@@ -84,7 +84,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const aiOutput = $('Message a model').first().json;\nlet text = '';\n\nif (typeof aiOutput === 'string') {\n    text = aiOutput;\n} else if (aiOutput.message && aiOutput.message.content) {\n    text = aiOutput.message.content;\n} else if (aiOutput.text) {\n    text = aiOutput.text;\n} else if (aiOutput.output) {\n    text = aiOutput.output;\n} else {\n    text = JSON.stringify(aiOutput);\n}\n\nreturn [\n  {\n    json: {\n      ok: true,\n      encontrado: $('Parse & Calculate Stock/Price').first().json.allAvailable,\n      respuesta: text,\n      mensaje_sugerido: text\n    }\n  }\n];"
+        "jsCode": "const aiOutput = $('Message a model').first().json;\nlet text = '';\n\nif (typeof aiOutput === 'string') {\n    text = aiOutput;\n} else if (aiOutput.message && aiOutput.message.content) {\n    text = aiOutput.message.content;\n} else if (aiOutput.text) {\n    text = aiOutput.text;\n} else if (aiOutput.output) {\n    text = aiOutput.output;\n} else {\n    text = JSON.stringify(aiOutput);\n}\n\nreturn [\n  {\n    json: {\n      ok: true,\n      encontrado: $('Parse & Calculate Stock/Price').first().json.allAvailable,\n      respuesta: text,\n      mensaje_sugerido: text,\n      clientEmail: $('Parse & Calculate Stock/Price').first().json.clientEmail\n    }\n  }\n];"
       },
       "id": "e931d401-1039-47e7-a07b-cbd1d84bca82",
       "name": "Format Response",
@@ -156,6 +156,30 @@
           "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID"
         }
       }
+    },
+    {
+      "parameters": {
+        "fromEmail": "Termopaneles El Monte <notificaciones@termopaneleselmonte.cl>",
+        "toEmail": "={{ $json.clientEmail || 'javiera.carrizo.alumnos@gmail.com' }}",
+        "subject": "Nueva Cotización de Termopanel - El Monte",
+        "html": "={{ $json.respuesta.replace(/\\n/g, '<br>') }}",
+        "options": {}
+      },
+      "continueOnFail": true,
+      "id": "e4024df8-fedf-4438-9a43-8327e5225ad8",
+      "name": "Enviar Email de Cotización",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        200
+      ],
+      "credentials": {
+        "smtp": {
+          "id": null,
+          "name": "SMTP Credentials"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -214,6 +238,11 @@
         [
           {
             "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enviar Email de Cotización",
             "type": "main",
             "index": 0
           }
