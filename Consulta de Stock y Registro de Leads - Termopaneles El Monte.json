@@ -160,7 +160,7 @@
     {
       "parameters": {
         "fromEmail": "Termopaneles El Monte <notificaciones@termopaneleselmonte.cl>",
-        "toEmail": "={{ $json.clientEmail || 'javiera.carrizo.alumnos@gmail.com' }}",
+        "toEmail": "={{ $json.clientEmail || 'thelowkeyfits@gmail.com' }}",
         "subject": "Nueva Cotización de Termopanel - El Monte",
         "html": "={{ $json.respuesta.replace(/\\n/g, '<br>') }}",
         "options": {}
