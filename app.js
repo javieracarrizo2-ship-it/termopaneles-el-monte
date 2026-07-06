@@ -540,7 +540,7 @@ Quedo atento/a al precio y disponibilidad actual. Gracias.`;
                 qty: qty,
                 origen: 'catalogo_individual'
             }),
-            signal: AbortSignal.timeout(4000)
+            signal: AbortSignal.timeout(12000)
         });
 
         if (response.ok) {
@@ -984,7 +984,7 @@ Total: ${totalCalcText}`;
                 totalCalc,
                 origen: 'carrito'
             }),
-            signal: AbortSignal.timeout(4000)
+            signal: AbortSignal.timeout(12000)
         });
 
         if (response.ok) {
