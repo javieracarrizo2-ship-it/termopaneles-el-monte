@@ -480,11 +480,12 @@ function renderGrid() {
             </div>
             
             <div class="product-actions">
-                <button onclick="buyProductDirectly('${product.id}')" class="cta-button whatsapp" id="btn-quote-${product.id}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-                        <path d="M12.031 2c-5.502 0-9.969 4.468-9.969 9.97 0 1.758.459 3.479 1.332 4.995L2 22l5.176-1.358c1.466.8 3.102 1.22 4.85 1.22h.004c5.502 0 9.969-4.467 9.969-9.969A9.92 9.92 0 0 0 12.031 2zm0 18.06h-.003c-1.558 0-3.085-.418-4.417-1.21l-.317-.188-3.284.861.876-3.2-.206-.328c-.87-1.385-1.33-2.988-1.33-4.636 0-4.693 3.82-8.513 8.517-8.513a8.44 8.44 0 0 1 6.021 2.496a8.44 8.44 0 0 1 2.493 6.024c.001 4.693-3.82 8.516-8.517 8.516zm4.665-6.381c-.255-.127-1.505-.742-1.738-.827-.233-.085-.403-.127-.572.127-.169.254-.656.828-.804.997-.148.17-.297.19-.552.063-.255-.127-.1.08-.1.08-1.077-.373-1.954-.954-2.73-1.628-.663-.576-1.11-1.288-1.24-1.542-.128-.255-.014-.393.114-.52.115-.115.255-.297.382-.445.127-.148.169-.254.254-.424.085-.17.042-.318-.021-.445-.064-.127-.572-1.377-.784-1.886-.207-.5-.436-.43-.572-.43-.148 0-.318-.008-.488-.008a.94.94 0 0 0-.678.318c-.233.255-.89.87-.89 2.123 0 1.254.912 2.463 1.04 2.632.127.17 1.795 2.748 4.348 3.85.607.262 1.081.42 1.45.538.61.194 1.165.166 1.603.1.488-.073 1.505-.615 1.717-1.208.212-.593.212-1.102.148-1.208-.063-.105-.233-.148-.488-.275z"/>
+                <button onclick="buyProductDirectly('${product.id}')" class="cta-button" id="btn-quote-${product.id}" style="background-color: var(--color-olive); color: white;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
                     </svg>
-                    Cotizar por WhatsApp
+                    Cotizar
                 </button>
                 <button class="cta-button add-to-cart-btn" onclick="addToCart('${product.id}')" id="btn-add-cart-${product.id}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -508,27 +509,28 @@ window.buyProductDirectly = async function(productId) {
     const qtyInput = document.getElementById(`qty-val-${productId}`);
     const qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
     
-    let formaText = '';
-    if (product.forma === 'triangular') {
-        formaText = ' con forma triangular';
-    } else if (product.forma === 'trapezoidal') {
-        formaText = ' con forma inclinada (trapecio)';
+    const email = prompt("Por favor, ingresa tu correo electrónico para recibir la cotización:");
+    if (email === null) return;
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+        alert("Debes ingresar un correo electrónico.");
+        return;
     }
-    
-    let message = `Hola, quiero cotizar un termopanel fijo de medida ${product.ancho_cm} x ${product.alto_cm} cm.
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+        alert("Por favor, ingresa un correo electrónico válido.");
+        return;
+    }
 
-Necesito cotizar ${qty} unidad(es).
-
-Quedo atento/a al precio y disponibilidad actual. Gracias.`;
-
-    // 1. Abrir ventana nueva en blanco primero
-    const newWindow = window.open('about:blank', '_blank');
-    if (!newWindow) {
-        console.warn('Popup blocker prevented opening window');
+    const btn = document.getElementById(`btn-quote-${productId}`);
+    let originalHtml = '';
+    if (btn) {
+        originalHtml = btn.innerHTML;
+        btn.innerHTML = 'Enviando...';
+        btn.disabled = true;
     }
 
     try {
-        // 2. Hacer fetch POST a la URL con AbortSignal.timeout
         const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
             method: 'POST',
             headers: {
@@ -538,28 +540,25 @@ Quedo atento/a al precio y disponibilidad actual. Gracias.`;
                 ancho_cm: product.ancho_cm,
                 alto_cm: product.alto_cm,
                 qty: qty,
+                email: cleanEmail,
                 origen: 'catalogo_individual'
             }),
-            signal: AbortSignal.timeout(12000)
+            signal: AbortSignal.timeout(15000)
         });
 
         if (response.ok) {
-            const data = await response.json();
-            if (data && data.mensaje_sugerido) {
-                message = data.mensaje_sugerido;
-            }
+            alert(`¡Cotización enviada con éxito! Revisa tu correo: ${cleanEmail}`);
+        } else {
+            alert("No pudimos procesar el envío de la cotización. Inténtalo de nuevo.");
         }
     } catch (error) {
         console.error('Error or timeout sending quote to webhook:', error);
-    }
-
-    const encodedText = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
-
-    if (newWindow) {
-        newWindow.location.href = whatsappUrl;
-    } else {
-        window.open(whatsappUrl, '_blank');
+        alert("Error de conexión al enviar la cotización. Revisa tu internet e inténtalo de nuevo.");
+    } finally {
+        if (btn) {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
     }
 };
 
@@ -945,34 +944,30 @@ async function checkoutCart() {
     const totalUnits = appState.cart.reduce((sum, item) => sum + item.qty, 0);
     const pricing = getCartPricing(totalUnits);
 
-    let itemsText = '';
-    appState.cart.forEach(item => {
-        const isTriangular = item.forma === 'triangular';
-        const isTrapezoidal = item.forma === 'trapezoidal';
-        const shapeText = isTriangular ? ' triangular' : (isTrapezoidal ? ' inclinada (trapecio)' : '');
-        const unitWord = item.qty === 1 ? 'unidad' : 'unidades';
-        itemsText += `* ${item.qty} ${unitWord} de medida ${item.medida_cm}${shapeText}\n`;
-    });
-
-    const priceAppliedText = `$${pricing.unitPrice.toLocaleString('es-CL')} c/u`;
-    const totalCalc = totalUnits * pricing.unitPrice;
-    const totalCalcText = `$${totalCalc.toLocaleString('es-CL')}`;
-
-    let message = `Hola, quiero cotizar los siguientes termopaneles:
-
-${itemsText}
-Total unidades: ${totalUnits}
-Precio unitario aplicado: ${priceAppliedText}
-Total: ${totalCalcText}`;
-
-    // 1. Abrir ventana nueva en blanco primero
-    const newWindow = window.open('about:blank', '_blank');
-    if (!newWindow) {
-        console.warn('Popup blocker prevented opening window');
+    const email = prompt("Por favor, ingresa tu correo electrónico para recibir la cotización de tu carro:");
+    if (email === null) return;
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+        alert("Debes ingresar un correo electrónico.");
+        return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+        alert("Por favor, ingresa un correo electrónico válido.");
+        return;
     }
 
+    const btn = DOM.cartCheckoutBtn;
+    let originalHtml = '';
+    if (btn) {
+        originalHtml = btn.innerHTML;
+        btn.innerHTML = 'Enviando...';
+        btn.disabled = true;
+    }
+
+    const totalCalc = totalUnits * pricing.unitPrice;
+
     try {
-        // 2. Hacer fetch POST a la URL con AbortSignal.timeout
         const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
             method: 'POST',
             headers: {
@@ -982,28 +977,29 @@ Total: ${totalCalcText}`;
                 items: appState.cart,
                 totalUnits,
                 totalCalc,
+                email: cleanEmail,
                 origen: 'carrito'
             }),
-            signal: AbortSignal.timeout(12000)
+            signal: AbortSignal.timeout(15000)
         });
 
         if (response.ok) {
-            const data = await response.json();
-            if (data && data.mensaje_sugerido) {
-                message = data.mensaje_sugerido;
-            }
+            alert(`¡Cotización del carro enviada con éxito! Revisa tu correo: ${cleanEmail}`);
+            appState.cart = [];
+            saveCart();
+            updateCartUI();
+            openCart(false);
+        } else {
+            alert("No pudimos procesar la cotización de tu carro. Inténtalo de nuevo.");
         }
     } catch (error) {
-        console.error('Error or timeout sending quote to webhook:', error);
-    }
-
-    const encodedText = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
-
-    if (newWindow) {
-        newWindow.location.href = whatsappUrl;
-    } else {
-        window.open(whatsappUrl, '_blank');
+        console.error('Error or timeout sending cart quote to webhook:', error);
+        alert("Error de conexión al enviar la cotización. Revisa tu internet e inténtalo de nuevo.");
+    } finally {
+        if (btn) {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
     }
 }
 
@@ -1230,7 +1226,7 @@ function calculateClosestMatches(userWidth, userHeight) {
             </div>
             <div class="calc-result-footer">
                 <span class="calc-stock-info">Stock: <strong>${p.unidades} u</strong></span>
-                <button class="calc-action-btn" onclick="buyProductDirectly('${p.id}')">Cotizar por WhatsApp</button>
+                <button class="calc-action-btn" onclick="buyProductDirectly('${p.id}')" style="background-color: var(--color-olive); color: white;">Cotizar</button>
             </div>
         `;
         resultsContainer.appendChild(card);
@@ -1283,9 +1279,9 @@ function initPlanner() {
                         <line x1="12" y1="17" x2="12.01" y2="17"></line>
                     </svg>
                     <h3>Medidas superan el límite del stock estándar</h3>
-                    <p>Para espacios mayores o proyectos con varios paños, envíanos tus medidas por WhatsApp y revisamos alternativas según el stock disponible.</p>
+                    <p>Para espacios mayores o proyectos con varios paños, solicita una cotización y revisamos alternativas según el stock disponible.</p>
                     <div class="planner-limit-exceeded-actions">
-                        <a href="https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent('Hola, quiero cotizar un cierre a medida para un espacio de ' + widthVal + ' cm de ancho por ' + heightVal + ' cm de alto.')}" target="_blank" class="calc-btn-whatsapp">Cotizar por WhatsApp</a>
+                        <button onclick="quoteCustomClosing(${widthVal}, ${heightVal})" class="calc-btn" style="background-color: var(--color-olive); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer;">Cotizar</button>
                     </div>
                 </div>
             `;
@@ -1831,9 +1827,9 @@ function renderPlannerProposals(alternatives, targetW, targetH, container) {
                     <line x1="9" y1="9" x2="15" y2="15"></line>
                 </svg>
                 <h3>Sin combinaciones disponibles</h3>
-                <p>No encontramos una combinación cercana con el stock actual. Puedes revisar medidas similares o cotizar por WhatsApp.</p>
+                <p>No encontramos una combinación cercana con el stock actual. Puedes revisar medidas similares o solicitar una cotización.</p>
                 <div class="calc-no-results-actions">
-                    <a href="https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent('Hola, no encontré stock en el Planificador para ' + targetW + 'x' + targetH + ' cm. ¿Tienen otras alternativas similares?')}" target="_blank" class="calc-btn-whatsapp">Cotizar por WhatsApp</a>
+                    <button onclick="quotePlannerFallback(${targetW}, ${targetH})" class="calc-btn" style="background-color: var(--color-olive); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer;">Cotizar</button>
                 </div>
             </div>
         `;
@@ -1998,11 +1994,12 @@ function renderPlannerProposals(alternatives, targetW, targetH, container) {
                     </svg>
                     Agregar propuesta al carro
                 </button>
-                <button class="cta-button whatsapp" onclick="quoteProposalOnWhatsApp('${serializedProposal}')" style="margin: 0; padding: 12px 20px; font-size: 0.9rem; justify-content: center; width: 100%;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style="margin-right: 6px; fill: currentColor;">
-                        <path d="M12.031 2c-5.502 0-9.969 4.468-9.969 9.97 0 1.758.459 3.479 1.332 4.995L2 22l5.176-1.358c1.466.8 3.102 1.22 4.85 1.22h.004c5.502 0 9.969-4.467 9.969-9.969A9.92 9.92 0 0 0 12.031 2zm0 18.06h-.003c-1.558 0-3.085-.418-4.417-1.21l-.317-.188-3.284.861.876-3.2-.206-.328c-.87-1.385-1.33-2.988-1.33-4.636 0-4.693 3.82-8.513 8.517-8.513a8.44 8.44 0 0 1 6.021 2.496a8.44 8.44 0 0 1 2.493 6.024c.001 4.693-3.82 8.516-8.517 8.516zm4.665-6.381c-.255-.127-1.505-.742-1.738-.827-.233-.085-.403-.127-.572.127-.169.254-.656.828-.804.997-.148.17-.297.19-.552.063-.255-.127-.1.08-.1.08-1.077-.373-1.954-.954-2.73-1.628-.663-.576-1.11-1.288-1.24-1.542-.128-.255-.014-.393.114-.52.115-.115.255-.297.382-.445.127-.148.169-.254.254-.424.085-.17.042-.318-.021-.445-.064-.127-.572-1.377-.784-1.886-.207-.5-.436-.43-.572-.43-.148 0-.318-.008-.488-.008a.94.94 0 0 0-.678.318c-.233.255-.89.87-.89 2.123 0 1.254.912 2.463 1.04 2.632.127.17 1.795 2.748 4.348 3.85.607.262 1.081.42 1.45.538.61.194 1.165.166 1.603.1.488-.073 1.505-.615 1.717-1.208.212-.593.212-1.102.148-1.208-.063-.105-.233-.148-.488-.275z"/>
+                <button class="cta-button" onclick="quoteProposalOnWhatsApp('${serializedProposal}')" style="margin: 0; padding: 12px 20px; font-size: 0.9rem; justify-content: center; width: 100%; background-color: var(--color-olive); color: white;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
                     </svg>
-                    Cotizar por WhatsApp
+                    Cotizar
                 </button>
             </div>
         `;
@@ -2261,61 +2258,129 @@ window.addProposalToCart = function(serializedProposal) {
 };
 
 // Cotizar propuesta en WhatsApp v2
-window.quoteProposalOnWhatsApp = function(serializedProposal) {
+window.quoteProposalOnWhatsApp = async function(serializedProposal) {
     try {
         const prop = JSON.parse(decodeURIComponent(serializedProposal));
         
-        const productCounts = {};
-        prop.panes.forEach(pane => {
-            const key = pane.product.id + (pane.rotated ? '_R' : '_N');
-            if (!productCounts[key]) {
-                productCounts[key] = {
-                    product: pane.product,
-                    width: pane.width,
-                    height: pane.height,
-                    rotated: pane.rotated,
-                    qty: 0
-                };
-            }
-            productCounts[key].qty++;
+        const email = prompt("Por favor, ingresa tu correo electrónico para recibir la cotización de esta propuesta:");
+        if (email === null) return;
+        const cleanEmail = email.trim();
+        if (!cleanEmail) {
+            alert("Debes ingresar un correo electrónico.");
+            return;
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(cleanEmail)) {
+            alert("Por favor, ingresa un correo electrónico válido.");
+            return;
+        }
+
+        const itemsPayload = prop.panes.map(pane => ({
+            ancho_cm: pane.product.ancho_cm,
+            alto_cm: pane.product.alto_cm,
+            qty: 1
+        }));
+
+        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                items: itemsPayload,
+                totalUnits: prop.unitCount,
+                totalCalc: prop.totalPrice,
+                email: cleanEmail,
+                origen: 'planificador_propuesta'
+            }),
+            signal: AbortSignal.timeout(15000)
         });
 
-        let itemsText = '';
-        Object.values(productCounts).forEach(item => {
-            const rotText = item.rotated ? ' (Girado)' : '';
-            itemsText += `* ${item.qty} u × termopanel de ${item.product.ancho_cm} x ${item.product.alto_cm} cm${rotText}\n`;
-        });
-
-        const pricing = getCartPricing(prop.unitCount);
-        const unitPriceText = `$${pricing.unitPrice.toLocaleString('es-CL')} c/u`;
-        const totalPriceText = `$${prop.totalPrice.toLocaleString('es-CL')}`;
-
-        const distLabelMap = {
-            'row': 'Una fila horizontal',
-            'column': 'Columna única',
-            'two-rows': 'Dos filas (distribución combinada)',
-            'grid': 'Cuadrícula'
-        };
-        const distText = distLabelMap[prop.type] || prop.type;
-
-        const message = `Hola, quiero cotizar la siguiente propuesta del Planificador de Cobertura:
-
-Espacio a cubrir: ${prop.totalWidth.toFixed(1)} cm de ancho × ${prop.totalHeight.toFixed(1)} cm de alto.
-Distribución: ${distText}
-Total cristales: ${prop.unitCount} paños
-
-Detalle de termopaneles sugeridos:
-${itemsText}
-Precio unitario estimado: ${unitPriceText}
-Total estimado de la propuesta: ${totalPriceText}
-
-Quedo atento/a para confirmar stock y coordinar el retiro en El Monte. Gracias.`;
-
-        const encodedText = encodeURIComponent(message);
-        const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
-
-        window.open(whatsappUrl, '_blank');
+        if (response.ok) {
+            alert(`¡Cotización de la propuesta enviada con éxito! Revisa tu correo: ${cleanEmail}`);
+        } else {
+            alert("No pudimos procesar la cotización de la propuesta. Inténtalo de nuevo.");
+        }
     } catch (e) {
-        console.error('Error al cotizar propuesta por WhatsApp:', e);
+        console.error('Error al cotizar propuesta por correo:', e);
+        alert("Hubo un error de conexión al enviar la cotización. Revisa tu internet e inténtalo de nuevo.");
+    }
+};
+
+window.quoteCustomClosing = async function(widthVal, heightVal) {
+    const email = prompt("Por favor, ingresa tu correo electrónico para recibir la cotización personalizada:");
+    if (email === null) return;
+    const cleanEmail = email.trim();
+    if (!cleanEmail) { 
+        alert("Debes ingresar un correo electrónico."); 
+        return; 
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) { 
+        alert("Por favor, ingresa un correo electrónico válido."); 
+        return; 
+    }
+
+    try {
+        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: `Hola, quiero cotizar un cierre a medida para un espacio de ${widthVal} cm de ancho por ${heightVal} cm de alto.`,
+                email: cleanEmail,
+                origen: 'asistente_dimensiones_limite'
+            }),
+            signal: AbortSignal.timeout(15000)
+        });
+
+        if (response.ok) {
+            alert(`¡Solicitud enviada con éxito! Nos contactaremos contigo al correo: ${cleanEmail}`);
+        } else {
+            alert("No pudimos procesar tu solicitud. Inténtalo de nuevo.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Error de conexión. Inténtalo de nuevo.");
+    }
+};
+
+window.quotePlannerFallback = async function(targetW, targetH) {
+    const email = prompt("Por favor, ingresa tu correo electrónico para recibir alternativas de stock:");
+    if (email === null) return;
+    const cleanEmail = email.trim();
+    if (!cleanEmail) { 
+        alert("Debes ingresar un correo electrónico."); 
+        return; 
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) { 
+        alert("Por favor, ingresa un correo electrónico válido."); 
+        return; 
+    }
+
+    try {
+        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: `Hola, no encontré stock en el Planificador para ${targetW} x ${targetH} cm. ¿Tienen otras alternativas similares?`,
+                email: cleanEmail,
+                origen: 'planificador_sin_stock'
+            }),
+            signal: AbortSignal.timeout(15000)
+        });
+
+        if (response.ok) {
+            alert(`¡Solicitud enviada con éxito! Te enviaremos alternativas al correo: ${cleanEmail}`);
+        } else {
+            alert("No pudimos procesar tu solicitud. Inténtalo de nuevo.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Error de conexión. Inténtalo de nuevo.");
     }
 };
