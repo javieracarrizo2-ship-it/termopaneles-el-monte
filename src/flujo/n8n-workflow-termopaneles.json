@@ -5,7 +5,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "cotizar-termopanel",
-        "responseMode": "responseNode",
+        "responseMode": "onReceived",
         "options": {
           "allowedOrigins": "https://termopaneles-el-monte-termo-s-projects.vercel.app"
         }
