@@ -509,23 +509,6 @@ if (!product) return;
 const qtyInput = document.getElementById(`qty-val-${productId}`);
 const qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
 
-<<<<<<< HEAD:app.js
-    try {
-        const response = await fetch('https://horaciosm86.app.n8n.cloud/webhook/cotizar-termopanel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                ancho_cm: product.ancho_cm,
-                alto_cm: product.alto_cm,
-                qty: qty,
-                email: cleanEmail,
-                origen: 'catalogo_individual'
-            }),
-            signal: AbortSignal.timeout(15000)
-        });
-=======
 const email = prompt("Por favor, ingresa tu correo electrónico para recibir la cotización:");
 if (email === null) return;
 const cleanEmail = email.trim();
@@ -538,7 +521,7 @@ if (!emailRegex.test(cleanEmail)) {
 alert("Por favor, ingresa un correo electrónico válido.");
 return;
 }
->>>>>>> 973a46bd9e8959e2c6d02cfb4b8fad18af91326d:src/ui/app.js
+
 
 const btn = document.getElementById(`btn-quote-${productId}`);
 let originalHtml = '';
@@ -985,7 +968,6 @@ btn.disabled = true;
 
 const totalCalc = totalUnits * pricing.unitPrice;
 
-<<<<<<< HEAD:app.js
     try {
         const response = await fetch('https://horaciosm86.app.n8n.cloud/webhook/cotizar-termopanel', {
             method: 'POST',
@@ -999,25 +981,8 @@ const totalCalc = totalUnits * pricing.unitPrice;
                 email: cleanEmail,
                 origen: 'carrito'
             }),
-            signal: AbortSignal.timeout(15000)
+            signal: AbortSignal.timeout(200000)
         });
-=======
-try {
-const response = await fetch('https://horaciosm86.app.n8n.cloud/webhook/cotizar-termopanel', {
-method: 'POST',
-headers: {
-'Content-Type': 'application/json'
-},
-body: JSON.stringify({
-items: appState.cart,
-totalUnits,
-totalCalc,
-email: cleanEmail,
-origen: 'carrito'
-}),
-signal: AbortSignal.timeout(200000)
-});
->>>>>>> 973a46bd9e8959e2c6d02cfb4b8fad18af91326d:src/ui/app.js
 
 if (response.ok) {
 alert(`¡Cotización del carro enviada con éxito! Revisa tu correo: ${cleanEmail}`);
