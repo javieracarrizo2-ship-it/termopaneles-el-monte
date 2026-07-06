@@ -207,12 +207,24 @@ function processProductRow(row) {
     try {
         const ancho_cm = parseFloat(row.ancho_cm);
         const alto_cm = parseFloat(row.alto_cm);
-        const ancho_m = parseFloat(row.ancho_m.replace(',', '.'));
-        const alto_m = parseFloat(row.alto_m.replace(',', '.'));
         const unidades = parseInt(row.unidades, 10);
         
         if (isNaN(ancho_cm) || isNaN(alto_cm) || isNaN(unidades)) {
             return null; // Invalid entry
+        }
+
+        let ancho_m;
+        if (row.ancho_m !== undefined && row.ancho_m !== null && row.ancho_m !== '') {
+            ancho_m = parseFloat(row.ancho_m.toString().replace(',', '.'));
+        } else {
+            ancho_m = ancho_cm / 100;
+        }
+
+        let alto_m;
+        if (row.alto_m !== undefined && row.alto_m !== null && row.alto_m !== '') {
+            alto_m = parseFloat(row.alto_m.toString().replace(',', '.'));
+        } else {
+            alto_m = alto_cm / 100;
         }
         
         // Calculate Area for classification
