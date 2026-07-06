@@ -6,7 +6,7 @@
 // Configuration
 const CONFIG = {
     csvPath: 'inventario-termopaneles-landing.csv',
-    googleSheetUrl: 'https://docs.google.com/spreadsheets/d/1XiVBqJeEwqdkMm3JSrA33OnbGS9N9mfvRjPg-U006no/edit?gid=324384237#gid=324384237', // 
+    googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSeHty4SN7j5L3ypMmiOSSlGYGOnd_qkU8LTwRO1aC55yZXMzPxdIQJ4MRQ6auYdhxpoMuS1R9nj_Ft/pub?output=csv', // Pega aquí el enlace de Google Sheets publicado como CSV, // 
     whatsappNumber: '56977445451', // Chilean business WhatsApp number (+56 9 ...)
     lowStockThreshold: 5
 };
