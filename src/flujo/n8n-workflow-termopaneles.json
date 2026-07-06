@@ -7,7 +7,7 @@
         "path": "cotizar-termopanel",
         "responseMode": "responseNode",
         "options": {
-          "allowedOrigins": "=https://termopaneles-el-monte-termo-s-projects.vercel.app"
+          "allowedOrigins": "https://termopaneles-el-monte-termo-s-projects.vercel.app"
         }
       },
       "id": "6423f3a8-24da-4baa-9a32-341c65445204",
@@ -54,7 +54,7 @@
             "entries": [
               {
                 "name": "=Access-Control-Allow-Origin",
-                "value": "=https://termopaneles-el-monte-termo-s-projects.vercel.app"
+                "value": "https://termopaneles-el-monte-termo-s-projects.vercel.app"
               }
             ]
           }
