@@ -16,166 +16,122 @@ Este es el repositorio oficial del MVP de **Termopaneles El Monte**, desarrollad
 9. [Sección Track-Específica (Track A)](#9-sección-track-específica-track-a)
 10. [Limitaciones y Próximos Pasos](#10-limitaciones-y-próximos-pasos)
 11. [Roles del Equipo](#11-roles-del-equipo)
-
----
+# Termopaneles El Monte
 
 ## 1. Identificación
-* **Nombre del Proyecto / Grupo**: Termopaneles El Monte
-* **Track / Caso**: Track A (Cliente Real), Caso A (Landing Page y Automatización)
-* **Tipo de Proyecto**: MVP
-* **Cliente**: Termopaneles El Monte
-* **Ubicación**: El Monte, Provincia de Talagante, Región Metropolitana, Chile
-* **Profesor**: Benjamín Happey
-* **Repositorio**: [https://github.com/javieracarrizo2-ship-it/termopaneles-el-monte](https://github.com/javieracarrizo2-ship-it/termopaneles-el-monte)
-* **Sitio Desplegado (Producción)**: [https://termopaneles-el-monte.vercel.app](https://termopaneles-el-monte.vercel.app)
-* **Integrantes**:
-  * **Javiera Carrizo**
-  * **Sara Díaz**
-  * **Horacio Sánchez**
-  * **Raimundo Pérez**
-  * **Martín Horta**
 
----
+- **Nombre del grupo:** Termopaneles El Monte
+- **Integrantes:** Javiera Carrizo, Sara Díaz, Horacio Sánchez, Raimundo Pérez, Martín Horta.
+- **Profesor:** Benjamín Happey
+- **Track elegido:** Track A
+- **Tipo declarado:** MVP
 
-## 2. Resumen Ejecutivo
-Construimos una **landing page dinámica de catálogo** integrada con un **flujo de automatización en n8n** para consultar el inventario de termopaneles fijos en tiempo real y captar leads comerciales por correo electrónico. La solución permite filtrar termopaneles por medida, visualizar sus proporciones mediante una vista previa interactiva, y estimar alternativas que se adapten a la estructura a través de la calculadora de vanos y del planificador de cobertura.
+## 2. Resumen ejecutivo
 
-**Métricas y Resultados:**
-* El tiempo de respuesta comercial se redujo de **~24 horas a menos de 5 segundos**.
-* Las visualizaciones semanales aumentaron de **~500 a ~1.500**.
-* En la primera semana de uso se concretaron **3 ventas** (con un ticket promedio de $50.000 CLP), equivalente a **~$150.000 CLP semanales** o **~$600.000 CLP mensuales proyectados**.
-* Con una inversión inicial estimada de $1.710.000 CLP, el **payback proyectado es de 2,9 meses**.
+Construimos una página web de apoyo en ventas para Termopaneles El Monte que organiza el stock disponible de termopaneles por medida, y ayuda a convertir las visitas provenientes de Facebook Marketplace en consultas más claras. La solución permite filtrar termopaneles por medida, visualizar sus proporciones mediante una vista previa, estimar qué medidas podrían servir como referencia mediante el planificador de cobertura, y orientarse con la calculadora de vano. El tiempo de respuesta bajó de ~24 horas a ~5 minutos y las visualizaciones semanales aumentaron de ~500 a ~1.500. En la primera semana de uso se concretaron 3 ventas (ticket promedio $50.000), equivalente a ~$150.000 semanales o ~$600.000 CLP mensuales proyectados. Con una inversión inicial de $1.710.000, el payback estimado es de 2,9 meses.
 
----
+## 3. Problema y solución
 
-## 3. Problema y Solución
+**El dolor:** Termopaneles El Monte vende unidades de remate con medidas fijas y variables entre sí, no termopaneles a medida. Esto dificulta la gestión de stock (muchos SKUs distintos, imposible estandarizar precios) y complica al cliente identificar qué medida necesita. En los últimos 30 días la empresa recibió 70 consultas por Facebook Marketplace; ~30% (≈21 consultas mensuales) no se respondían en menos de 24 horas, representando una oportunidad de venta afectada de ~$1.050.000 CLP mensuales.
 
-### El Dolor del Negocio (Termopaneles El Monte)
-* **Complejidad de Stock**: Disponer de un volumen alto de termopaneles fijos sin marco con más de 100 combinaciones diferentes de ancho y alto dificulta la visualización del stock.
-* **Proceso Manual Ineficiente**: El 100% de las consultas e inventarios demandaban revisión física manual de los racks, retrasando las respuestas y perdiendo ventas. Alrededor del 30% de las consultas de Facebook Marketplace quedaban sin responder en menos de 24 horas.
-* **Logística Crítica**: Al venderse productos frágiles y de gran peso, el negocio opera exclusivamente con **retiro en tienda física** (`Avenida los carrera 736 B, El monte`). Las solicitudes de despacho a domicilio generaban fricciones y cancelaciones frecuentes.
+**La solución:** Una plataforma web que centraliza el inventario, permite filtrar por ancho/largo, visualizar proporciones, y usar un planificador de cobertura y calculadora de vano. Un flujo en n8n se activa al cotizar, consulta el inventario en tiempo real (tolerancia ±5 cm) y genera un mensaje de WhatsApp enriquecido y listo para enviar, registrando cada consulta en una planilla de leads. Javiera valida disponibilidad real, precio final y coordina el retiro antes de cerrar cada venta.
 
-### El Dolor del Cliente Final (Particular/Hogar)
-* **Falta de Claridad Técnica**: Los clientes no comprenden qué es un termopanel (vidrio doble aislante sin marco) o cómo medir el espacio de instalación (vano).
-* **Asimetría de Información**: No saber si una medida específica está disponible obliga al cliente a contactar directamente al negocio, demorando el inicio de su proyecto de remodelación.
+## 4. Arquitectura
 
-### Solución MVP Propuesta
-* **Landing Page de Catálogo**: Un sitio responsivo clásico y de estética residencial que carga dinámicamente el inventario disponible y lo organiza en categorías claras (Chico, Mediano, Grande).
-* **Asistente de Medidas e Integración**: Una calculadora de vano integrada que busca las 3 alternativas de stock más cercanas a las dimensiones ingresadas por el cliente.
-* **Automatización en n8n**: Un webhook inteligente que lee la disponibilidad de Google Sheets en tiempo real, extrae medidas utilizando Inteligencia Artificial (Google Gemini) y registra cada lead en un Google Sheets de consultas, enviando la cotización redactada automáticamente vía correo electrónico.
+*CANAL                    BACKEND                        AGENTE
++------------------+    +--------------------+    +------------------------+
+|  Cliente en la   |    |   n8n (webhook)    |    |       AI Agent         |
+|  web             |--->|   - Recibe medida  |--->|   - Busca stock ±5cm   |
+|   (catálogo      |    |                    |    |                        |
+|        o         |    |     y cantidad     |    |    - Genera mensaje.   |
+|    carrito)      |    |                    |    |                        |
+|                  |    |                    |    |                        |
++------------------+    +--------------------+    +-----------+------------+
+                                                              |
+                                                         consulta stock
+                                                              |
+                                                              v
+                                                    +------------------------+
+                                                    |   Google Sheets        |
+                                       ---------    |   (inventario real)    |
+                                       |            |                        |
+                                       v            +------------------------+
+                              +---------------------+
+                              |  Respond to         |
+                              |  Webhook            |
+                              |  - Devuelve mensaje |
+                              |    sugerido a la web|
+                              +---------+-----------+
+                                        |
+                        +---------------+---------------+
+                        |                               |
+                        v                               v
+            +------------------------+      +------------------------+
+            |  WhatsApp              |      |  Leads (Google Sheets) |
+            |  - Mensaje enriquecido |      |  - Registro de cada    |
+            |    con stock real      |      |    consulta            |
+            +-----------+------------+      +------------------------+
+                        |
+                        v
+            +------------------------+
+            |  Javiera confirma       |
+            |  - Disponibilidad real  |
+            |  - Precio final         |
+            |  - Coordina retiro      |
+            +-------------------------+
 
----
+## 5. Las 4 verticales
 
-## 4. Arquitectura y Flujo de Datos
+Vertical	     |  Capa cumplida	 |  Dónde está la evidencia
+Automatización |  Capa 1	       | src/flujo/n8n-workflow-termopaneles.json
+IA             |	Capa 1	       | /src/prompts/system.md 
+BBDD	         |  Capa 1       	 | Link a Google Sheets: (https://docs.google.com/spreadsheets/d/1XiVBqJeEwqdkMm3JSrA33OnbGS9N9mfvRjPg-U006no/edit?gid=324384237#gid=324384237) o /src/bbdd/URL-Sheets
+Front	         | Capa 1 	       | Link web: https://termopaneles-el-monte.vercel.app/# o src/ui/URL-Página-web
 
-### Diagrama de la Arquitectura (Mermaid)
 
-```mermaid
-graph TD
-    User[Cliente Final] -->|1. Consulta Stock / Web| Web(Landing Page Frontend)
-    Web -->|2. POST JSON / API| Webhook{n8n Webhook Node}
-    Webhook -->|3. Leer Inventario| SheetsRead[Google Sheets: Leer Inventario]
-    SheetsRead -->|4. Filas de Stock| CodeNode[Code Node: Reglas y Cotizador]
-    CodeNode -->|5. Procesar Prompt| Gemini[Gemini Node: Message a model]
-    Gemini -->|6. Respuesta Redactada| FormatResponse[Format Response Node]
-    FormatResponse -->|7a. Responder Web| Responder[Respond to Webhook Node]
-    FormatResponse -->|7b. Registrar Lead| SheetsWrite[Google Sheets: Registrar Consulta]
-    FormatResponse -->|7c. Enviar Email| EmailNode[Enviar Email de Cotización]
-    Responder -->|8. API Response| Web
-    Web -->|9. Muestra Resultados y Alerta de Cotización| User
-    SheetsRead -.-->|Origen de Datos| DBStock[(Spreadsheet: Inventario)]
-    SheetsWrite -.-->|leads base| DBLeads[(Spreadsheet: Consultas)]
-```
+## 6. Touchpoint del usuario
 
----
+El usuario final (cliente) gatilla la solución desde la web, al cotizar una medida y cantidad de termopanel en el catálogo o carrito. Recibe el resultado por WhatsApp, en un mensaje enriquecido con el stock real disponible, generado automáticamente por el agente.
 
-## 5. Las 4 Verticales
+## 7. Cómo correrlo
 
-| Vertical | Capa cumplida | Dónde está la evidencia |
-| :--- | :--- | :--- |
-| **Automatización** | Capa 1 | [n8n-workflow-termopaneles.json](src/flujo/n8n-workflow-termopaneles.json) |
-| **IA** | Capa 1 | Prompt del sistema en el nodo *Message a model* del workflow de n8n |
-| **BBDD** | Capa 1 | [Google Sheets de Inventario](https://docs.google.com/spreadsheets/d/e/2PACX-1vSeHty4SN7j5L3ypMmiOSSlGYGOnd_qkU8LTwRO1aC55yZXMzPxdIQJ4MRQ6auYdhxpoMuS1R9nj_Ft/pub?output=csv) |
-| **Front** | Capa 1 | [Página Web Termopaneles El Monte](https://termopaneles-el-monte.vercel.app/) |
+- Requisitos: cuenta n8n (cloud o self-hosted), acceso a Google Sheets API, número de WhatsApp Business (o API de WhatsApp usada).
+- Credenciales: conectar credencial de Google Sheets en n8n, credencial de WhatsApp/API en el nodo correspondiente (usar mock/sandbox si no quieren exponer las reales).
+- Importar workflow: en n8n, "Import from File" → cargar workflow.json desde src/flujo/.
+- Configurar Sheet: copiar la planilla de inventario y de leads, pegar sus IDs en los nodos de Google Sheets del workflow.
+- Activar webhook: copiar la URL del nodo Webhook y pegarla en la web (app.js o donde se hace el fetch).
+- Probar: cotizar una medida desde la web y verificar que llegue el mensaje por WhatsApp y se registre el lead.
 
----
+## 8. Sección track-específica (Track A)
 
-## 6. Cómo Interactúa el Usuario con la Solución
+- **Cliente:** Termopaneles El Monte (El Monte, Talagante)
+- **Contacto:** Javiera Carrizo, socia fundadora — javieracarrizo2@gmail.com
+- **Métricas antes/después:**
+  - Tiempo de respuesta: ~24 horas → <5 minutos
+  - Visualizaciones semanales: ~500 → ~1.500
+  - Ventas primera semana: 3 (ticket promedio $50.000)
+- **Cuantificación:** ~$150.000 CLP semanales / ~$600.000 CLP mensuales proyectados; inversión inicial $1.710.000; payback estimado 2,9 meses
 
-### Perfil: Cliente Particular (Hogar)
-1. **Búsqueda e Inspección**: Navega en la landing page y visualiza las categorías del inventario disponible en tiempo real.
-2. **Uso de Calculadora de Vano**: Ingresa las medidas del espacio que desea cubrir (ej. ancho 80 cm, alto 120 cm).
-3. **Recepción de Alternativas**: La calculadora le muestra las 3 alternativas más similares disponibles en el stock físico, detallando la diferencia exacta en centímetros.
-4. **Cotización e Ingreso de Email**: Hace clic en el botón "Cotizar", ingresa manualmente su dirección de correo electrónico y recibe de inmediato la cotización redactada automáticamente por Gemini.
+## 9. Limitaciones y próximos pasos
 
-### Perfil: Administrador del Negocio
-1. **Actualización de Stock**: Cuando se fabrica o vende un termopanel, el administrador simplemente actualiza las columnas de la fila correspondiente en la hoja `"Inventario"` de su Google Sheets.
-2. **Recepción de Leads**: Abre la hoja `"Consultas"` de Google Sheets para revisar las dimensiones solicitadas, teléfonos, nombres e historial de cotizaciones automatizadas y realizar seguimiento.
+- Tolerancia fija de ±5cm: no se ajusta según el tipo de vano, puede sugerir medidas que no calzan bien en casos límite.
+- Dependencia de Google Sheets como BBDD: no escala si el inventario crece o si hay ediciones concurrentes.
+- Validación manual final: Javiera debe confirmar disponibilidad y precio a mano, no hay reserva automática de stock (riesgo de vender lo mismo dos veces).
+- Sin autenticación/control de acceso: cualquiera con el link de la web puede cotizar, sin trazabilidad de usuarios.
+- No hay manejo de errores visible: si el webhook falla o el agente no encuentra stock, no está claro qué mensaje recibe el cliente.
+- Un solo canal de entrega: solo WhatsApp; no cubre Facebook Marketplace directamente pese a que ahí se origina buena parte del tráfico.
+- Dependencia de un solo agente humano (Javiera) como cuello de botella para cerrar ventas.
 
----
+**Proximos pasos**
+- Agregar el numero de los clientes al Google Sheets, por si se pierde el chat saber quien consulto/ cerro trato.
+- Si el negocio escala migrar a una base de datos real, para evitar problemas
+- Si el negocio escala, integrar metodo de pago y eventual conveio con empresa de transporte para enviar los paneles.
+- Ajustar tolerancia, dado que el panel podria ser <5 cm qu ele vano, sin embargo no podría ser >5 cm, el cliente tedría que agrandar el vano, sería un adificultad extra.
 
-## 7. Automatización, Inventario y Prompts
-* **Fuente de Inventario**: Google Sheets que sirve como base de datos en la nube.
-* **Lógica del Algoritmo JS**: 
-  * Exclusión de registros con unidades igual o menor a `0`.
-  * Filtro de filas con estado `"agotado"`, `"vendido"` o `"no disponible"`.
-  * Tolerancia máxima de ±5 cm por discrepancias en medidas.
-  * Cálculo de alternativas similares por menor distancia Euclidiana.
-* **Prompt de IA (Gemini)**: Diseñado para actuar como el asistente virtual de ventas de "Termopaneles El Monte", con tono residencial, clásico, claro y servicial, recalcando las políticas (solo retiro, sin marcos, sin despachos).
+## 10. Roles del equipo
 
----
-
-## 8. Cómo Correrlo
-
-### Requisitos Previos
-* Servidor local o hosting estático (ej. Vercel).
-* Cuenta de n8n activa.
-* Credenciales de Google Sheets, SMTP y Google Gemini (PaLM) API.
-
-### Instrucciones
-1. **Clonar Repositorio**:
-   ```bash
-   git clone https://github.com/javieracarrizo2-ship-it/termopaneles-el-monte.git
-   ```
-2. **Levantar Servidor Local**: Al tratarse de una web estática pura, abre el proyecto levantando un servidor web local con `npx http-server` en la raíz de la carpeta del proyecto para evitar bloqueos de CORS.
-3. **Configurar n8n**:
-   * Importa el flujo desde [n8n-workflow-termopaneles.json](src/flujo/n8n-workflow-termopaneles.json).
-   * Vincula tus credenciales de Google Sheets, SMTP y Google Gemini API.
-   * Cambia los ID de planilla a tus respectivas hojas de cálculo de Drive y activa el flujo.
-
----
-
-## 9. Sección Track-Específica (Track A)
-* **Cliente**: Termopaneles El Monte (El Monte, Talagante, Chile).
-* **Contacto**: Javiera Carrizo, socia fundadora — javieracarrizo2@gmail.com
-* **Métricas antes/después**:
-  * Tiempo de respuesta inicial: ~24 horas → <5 segundos.
-  * Visualizaciones semanales: ~500 → ~1.500.
-  * Ventas concretadas la primera semana: 3 ventas (ticket promedio $50.000 CLP).
-  * Valor cuantificado: ~$150.000 CLP semanales / ~$600.000 CLP mensuales proyectados. Payback estimado de 2,9 meses.
-
----
-
-## 10. Limitaciones y Próximos Pasos
-
-### Limitaciones Actuales
-* **Validación Humana Final**: El stock final y la reserva física del vidrio requieren confirmación humana por correo o chat para coordinar el día exacto de retiro.
-* **Dependencia de Google Sheets**: No escala óptimamente ante volúmenes masivos de transacciones concurrentes.
-* **Solo Retiro**: La imposibilidad de ofrecer despacho a domicilio restringe las ventas a nivel geográfico local.
-
-### Siguientes Pasos
-1. **Agregar el número de los clientes al Google Sheets**: Guardar de forma automatizada todos los teléfonos que ingresen para poder realizar llamadas de seguimiento de leads de forma directa.
-2. **Método de Pago Integrado**: Agregar pasarelas de pago de reserva (como Webpay) si el negocio escala.
-3. **Optimización de Tolerancia**: Ajustar la tolerancia Euclidiana para dar mayor peso al ancho que al alto del panel según requerimientos estructurales de instalación.
-
----
-
-## 11. Roles del Equipo
-
-| Integrante | Rol Principal | Contribución Clave |
-| :--- | :--- | :--- |
-| **Javiera Carrizo** | Directora de Desarrollo / Tech Lead | Desarrollo de frontend estático, integración del planificador SVG dinámico, parser CSV, integración de webhook n8n y optimización responsiva del layout. |
-| **Sara Díaz** | Directora de KPIs | Gestión de métricas comerciales, análisis de payback, visualizaciones semanales y ticket de venta promedio. |
-| **Horacio Sánchez** | Arquitecto de n8n / Backend | Diseño del flujo de trabajo de n8n, conexión del webhook, lógica en JavaScript para procesamiento de stock y enrutado de datos. |
-| **Raimundo Pérez** | Director de Documentación | Redacción de informes técnicos, análisis del problema de negocio y diseño de la arquitectura del MVP. |
-| **Martín Horta** | UI/UX Designer / Frontend | Diseño de la interfaz, estilos responsivos en CSS, selección tipográfica y paleta de colores residenciales. |
+Javiera Carrizo: Conseguir la empresa.
+Horacio Sanchez: Flujo N8N
+Sara Díaz: KPIs
+Raimundo Perez: Desarrollar el informe.
+Martín Horta: Construir/Diseñar la página web.
