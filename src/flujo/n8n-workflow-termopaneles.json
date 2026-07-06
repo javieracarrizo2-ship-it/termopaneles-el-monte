@@ -7,7 +7,7 @@
         "path": "cotizar-termopanel",
         "responseMode": "responseNode",
         "options": {
-          "allowedOrigins": "=https://termopaneles-el-monte-termo-s-projects.vercel.app, http://localhost:3000, http://localhost:5173, http://localhost:8080"
+          "allowedOrigins": "https://termopaneles-el-monte-termo-s-projects.vercel.app, http://localhost:3000, http://localhost:5173, http://localhost:8080"
         }
       },
       "id": "6423f3a8-24da-4baa-9a32-341c65445204",
