@@ -543,7 +543,7 @@ qty: qty,
 email: cleanEmail,
 origen: 'catalogo_individual'
 }),
-signal: AbortSignal.timeout(15000)
+signal: AbortSignal.timeout(200000)
 });
 
 if (response.ok) {
@@ -820,9 +820,9 @@ let totalEstimated = `$${(totalUnits * 25000).toLocaleString('es-CL')}`;
 let discountMsg = '';
 
 if (totalUnits >= 40) {
-unitPrice = 15000;
+unitPrice = 200000;
 priceLabel = '$15.000 c/u (Oferta volumen)';
-totalEstimated = `$${(totalUnits * 15000).toLocaleString('es-CL')}`;
+totalEstimated = `$${(totalUnits * 200000).toLocaleString('es-CL')}`;
 discountMsg = '¡Súper precio mayorista de $15.000 c/u aplicado! (Máximo descuento)';
 } else if (totalUnits >= 10) {
 unitPrice = 20000;
@@ -980,7 +980,7 @@ totalCalc,
 email: cleanEmail,
 origen: 'carrito'
 }),
-signal: AbortSignal.timeout(15000)
+signal: AbortSignal.timeout(200000)
 });
 
 if (response.ok) {
@@ -2293,7 +2293,7 @@ totalCalc: prop.totalPrice,
 email: cleanEmail,
 origen: 'planificador_propuesta'
 }),
-signal: AbortSignal.timeout(15000)
+signal: AbortSignal.timeout(200000)
 });
 
 if (response.ok) {
@@ -2332,7 +2332,7 @@ message: `Hola, quiero cotizar un cierre a medida para un espacio de ${widthVal}
 email: cleanEmail,
 origen: 'asistente_dimensiones_limite'
 }),
-signal: AbortSignal.timeout(15000)
+signal: AbortSignal.timeout(200000)
 });
 
 if (response.ok) {
@@ -2371,7 +2371,7 @@ message: `Hola, no encontré stock en el Planificador para ${targetW} x ${target
 email: cleanEmail,
 origen: 'planificador_sin_stock'
 }),
-signal: AbortSignal.timeout(15000)
+signal: AbortSignal.timeout(200000)
 });
 
 if (response.ok) {
