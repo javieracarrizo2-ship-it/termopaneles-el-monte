@@ -468,6 +468,10 @@ card.innerHTML = `
                    <span class="detail-label">Separador</span>
                    <span class="detail-value">Bronce 11.5mm</span>
                </li>
+               <li>
+                   <span class="detail-label">Precio</span>
+                   <span class="detail-value" style="font-weight: 700; color: var(--color-olive);">$25.000 c/u</span>
+               </li>
            </ul>
            
            <div class="product-card-qty-row">
@@ -821,10 +825,10 @@ let totalEstimated = `$${(totalUnits * 25000).toLocaleString('es-CL')}`;
 let discountMsg = '';
 
 if (totalUnits >= 40) {
-unitPrice = 200000;
-priceLabel = '$15.000 c/u (Oferta volumen)';
-totalEstimated = `$${(totalUnits * 200000).toLocaleString('es-CL')}`;
-discountMsg = '¡Súper precio mayorista de $15.000 c/u aplicado! (Máximo descuento)';
+    unitPrice = 15000;
+    priceLabel = '$15.000 c/u (Oferta volumen)';
+    totalEstimated = `$${(totalUnits * 15000).toLocaleString('es-CL')}`;
+    discountMsg = '¡Súper precio mayorista de $15.000 c/u aplicado! (Máximo descuento)';
 } else if (totalUnits >= 10) {
 unitPrice = 20000;
 priceLabel = '$20.000 c/u (Oferta volumen)';
@@ -916,7 +920,7 @@ itemElement.innerHTML = `
            
            <div class="cart-item-details">
                <div class="cart-item-title">${item.medida_cm}${shapeLabel}</div>
-               <div class="cart-item-sub">Stock Máx: ${item.maxQty} u</div>
+               <div class="cart-item-sub">Stock Máx: ${item.maxQty} u | <strong style="color: var(--color-olive); font-weight: 600;">$${pricing.unitPrice.toLocaleString('es-CL')} c/u</strong></div>
                
                <div class="cart-qty-controls">
                    <button class="qty-btn" onclick="updateCartQty('${item.id}', -1)" aria-label="Restar una unidad">-</button>
