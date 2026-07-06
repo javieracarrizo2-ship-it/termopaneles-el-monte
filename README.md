@@ -38,48 +38,39 @@ Construimos una página web de apoyo en ventas para Termopaneles El Monte que or
 
 ## 4. Arquitectura
 
-*CANAL                    BACKEND                        AGENTE
-+------------------+    +--------------------+    +------------------------+
-|  Cliente en la   |    |   n8n (webhook)    |    |       AI Agent         |
-|  web             |--->|   - Recibe medida  |--->|   - Busca stock ±5cm   |
-|   (catálogo      |    |                    |    |                        |
-|        o         |    |     y cantidad     |    |    - Genera mensaje.   |
-|    carrito)      |    |                    |    |                        |
-|                  |    |                    |    |                        |
-+------------------+    +--------------------+    +-----------+------------+
-                                                              |
-                                                         consulta stock
-                                                              |
-                                                              v
-                                                    +------------------------+
-                                                    |   Google Sheets        |
-                                       ---------    |   (inventario real)    |
-                                       |            |                        |
-                                       v            +------------------------+
-                              +---------------------+
-                              |  Respond to         |
-                              |  Webhook            |
-                              |  - Devuelve mensaje |
-                              |    sugerido a la web|
-                              +---------+-----------+
-                                        |
-                        +---------------+---------------+
-                        |                               |
-                        v                               v
-            +------------------------+      +------------------------+
-            |  WhatsApp              |      |  Leads (Google Sheets) |
-            |  - Mensaje enriquecido |      |  - Registro de cada    |
-            |    con stock real      |      |    consulta            |
-            +-----------+------------+      +------------------------+
-                        |
-                        v
-            +------------------------+
-            |  Javiera confirma       |
-            |  - Disponibilidad real  |
-            |  - Precio final         |
-            |  - Coordina retiro      |
-            +-------------------------+
-
+            CANAL                     BACKEND (n8n)                                  AGENTE / DESTINOS
++-------------------+     +----------------------------------------+     +-------------------------------+
+| Cliente en Web    |     | 1. Webhook (POST)                      |     | 4. AI Agent (Model 1)         |
+| (Catálogo /       |---->|    - Recibe solicitud del cliente      |---->|    - Mensaje de texto         |
+|  Carrito)         |     +----------------------------------------+     |    - Uso de Herramientas      |
++-------------------+                         |                          +-------------------------------+
+                                              v                                          |
+                          +----------------------------------------+                     | respuesta
+                          | 2. Fetch Inventory CSV                 |                     v
+                          |    - GET de Google Sheets (docs)       |     +-------------------------------+
+                          +----------------------------------------+     | 5. Format Response 1          |
+                                              |                          |    - Parsea salida AI         |
+                                              v                          +-------------------------------+
+                          +----------------------------------------+                     |
+                          | 3. Parse & Calculate Stock/Price       |                     |
+                          |    - Lógica de negocio e inventario    |                     v
+                          +----------------------------------------+     +-------------------------------+
+                                       /              \                  | 6. Respond to Webhook         |
+                                      /                \                 |    - Retorno inmediato        |
+                                     v                  v                +-------------------------------+
+                        +--------------------+  +--------------------+                   |
+                        | Google Sheets:     |  | Enviar Email de    |                   v
+                        | Registrar Consulta |  | Cotización (Gmail) |   +-------------------------------+
+                        | - Registro de Lead |  | - Mensaje al clte. |   | Append row in sheet           |
+                        +--------------------+  +--------------------+   | - Registro final de           |
+                                                          |              |   operación y estado          |
+                                                          v              +-------------------------------+
+                                                +--------------------+
+                                                | Javiera (WhatsApp) |
+                                                | - Validación manual|
+                                                | - Coordinación fin |
+                                                +--------------------+
+            
 ## 5. Las 4 verticales
 
 Vertical	     |  Capa cumplida	 |  Dónde está la evidencia
