@@ -199,8 +199,8 @@ Cifras medidas entre Junio 2026, antes del MVP:
 | ----- | ----- | ----- |
 | Consultas últimos 30 días | 70 | Registro consultar WhatsApp Business |
 | % sin respuesta en \<24h | \~30% | Auditoría manual sobre WhatsApp Junio |
-| Casos perdidos por demora en respuesta | \~62 leads | Cliente reconoce 15 a la semana |
-| Revenue mensual perdido (estimación) | \~$3.100.000 | 62 leads × $50.000 honorarios iniciales promedio |
+| Casos perdidos por demora en respuesta | \~21 leads | Cálculo basado en auditoría de WhatsApp (30% de 70 consultas) |
+| Revenue mensual perdido (estimación) | \~$1.050.000 | 21 leads × $50.000 honorarios iniciales promedio |
 
 **8.3 Resultado post-MVP (medido en piloto de 3 semanas)**
 
@@ -217,8 +217,8 @@ El piloto corrió entre el 10 y el 30 de Junio 2026\. Lo siguiente son cifras re
 | Concepto | Semanal | Mensual | Notas |
 | ----- | ----- | ----- | ----- |
 | Conversión semanal | $150.000 | $600.000 | Aumentó en 1 cliente aprox la cantidad semanal de compradores |
-| Recuperación Post implementación | $50.000 | $200.000 | Corresponde al aumento de ventas post implementación |
 | Payback |  | 2,9 meses |  |
+|  |  |  |   |
 
 **9\.  LIMITACIONES**
 
@@ -231,7 +231,7 @@ Como trabajo futuro, se propone migrar el inventario a una base de datos para ma
 | Integrante | Rol | Contribución principal |
 | ----- | ----- | ----- |
 | Javiera Carrizo | Cliente | Consiguió la empresa a la cual solucionar un problema concreto. |
-| Horacio Sanchez | Flujo N8N | Construyó workflows de n8n (principal \+ Error Trigger) |
+| Horacio Sanchez | Flujo N8N | Construyó workflows de n8n |
 | Sara Díaz | KPI’s | Creó el benchmark y ver como post implementación los tiempos, costos y ventas han cambiado |
 | Raimundo Perez | Informe | Redactó el informe según las especificaciones del proyecto |
 | Martín Horta | UX/UI | Diseñó la página web  \+ ReadMe.md |
