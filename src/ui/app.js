@@ -531,7 +531,7 @@ btn.disabled = true;
 }
 
 try {
-const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+const response = await fetch('https://horaciosm86.app.n8n.cloud/webhook/cotizar-termopanel', {
 method: 'POST',
 headers: {
 'Content-Type': 'application/json'
@@ -968,7 +968,7 @@ btn.disabled = true;
 const totalCalc = totalUnits * pricing.unitPrice;
 
 try {
-const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+const response = await fetch('https://horaciosm86.app.n8n.cloud/webhook/cotizar-termopanel', {
 method: 'POST',
 headers: {
 'Content-Type': 'application/json'
@@ -2281,7 +2281,7 @@ alto_cm: pane.product.alto_cm,
 qty: 1
 }));
 
-const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+const response = await fetch('https://horaciosm86.app.n8n.cloud/webhook/cotizar-termopanel', {
 method: 'POST',
 headers: {
 'Content-Type': 'application/json'
@@ -2322,7 +2322,7 @@ return;
 }
 
 try {
-const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+const response = await fetch('https://horaciosm86.app.n8n.cloud/webhook/cotizar-termopanel', {
 method: 'POST',
 headers: {
 'Content-Type': 'application/json'
@@ -2361,7 +2361,7 @@ return;
 }
 
 try {
-const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+const response = await fetch('https://horaciosm86.app.n8n.cloud/webhook/cotizar-termopanel', {
 method: 'POST',
 headers: {
 'Content-Type': 'application/json'
