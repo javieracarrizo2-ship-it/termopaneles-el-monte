@@ -1,0 +1,265 @@
+{
+  "name": "Consulta de Stock y Registro de Leads - Termopaneles El Monte",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "termopaneles/consultar-stock",
+        "responseMode": "responseNode",
+        "options": {
+          "cors": true,
+          "allowedOrigins": "https://termopaneles-el-monte.vercel.app, http://localhost:3000, http://localhost:5173, http://localhost:8080"
+        }
+      },
+      "id": "18f972b2-658b-4a57-b08e-f14bf76e5d23",
+      "name": "Webhook de Entrada",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "and": [
+            {
+              "value1": "={{ $json.body.ancho_cm }}",
+              "operator": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.body.alto_cm }}",
+              "operator": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "28f972b2-658b-4a57-b08e-f14bf76e5d24",
+      "name": "¿Vienen Medidas?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "Eres un extractor de medidas para una empresa de termopaneles. No respondes al cliente y no entregas recomendaciones. Solo extraes ancho, alto y cantidad desde un mensaje en español.\n\nReglas:\n- Convierte metros a centímetros.\n- Usa cantidad 1 si no se menciona.\n- Si no puedes identificar claramente ancho y alto, usa null.\n- Devuelve exclusivamente JSON válido, sin texto adicional.\n- No inventes medidas."
+            },
+            {
+              "role": "user",
+              "content": "={{ $('Webhook de Entrada').first().json.body.mensaje }}"
+            }
+          ]
+        },
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "38f972b2-658b-4a57-b08e-f14bf76e5d25",
+      "name": "Nodo de IA: Extraer Medidas",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.1,
+      "position": [
+        700,
+        420
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Inventario",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "48f972b2-658b-4a57-b08e-f14bf76e5d26",
+      "name": "Google Sheets: Leer Inventario",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        920,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const precio_unitario = 25000;\nlet error_log = null;\n\n// 2. Extraer datos del Webhook\nconst webhookData = $('Webhook de Entrada').first().json.body || $('Webhook de Entrada').first().json;\nlet nombre = webhookData.nombre || \"\";\nlet telefono = webhookData.telefono || \"\";\nlet mensaje = webhookData.mensaje || \"\";\n\nlet ancho = null;\nlet alto = null;\nlet cantidad = 1;\n\n// 3. Obtener dimensiones prioritarias del Webhook o de la IA\nif (webhookData.ancho_cm !== undefined && webhookData.ancho_cm !== null && webhookData.ancho_cm !== '') {\n    ancho = parseFloat(webhookData.ancho_cm);\n    alto = parseFloat(webhookData.alto_cm);\n    cantidad = parseInt(webhookData.cantidad || 1, 10);\n} else {\n    try {\n        const aiOutput = $('Nodo de IA: Extraer Medidas').first().json;\n        let aiData = {};\n        \n        if (typeof aiOutput === 'string') {\n            aiData = JSON.parse(aiOutput);\n        } else if (aiOutput.message && aiOutput.message.content) {\n            const content = aiOutput.message.content;\n            aiData = typeof content === 'string' ? JSON.parse(content) : content;\n        } else if (aiOutput.text) {\n            aiData = typeof aiOutput.text === 'string' ? JSON.parse(aiOutput.text) : aiOutput.text;\n        } else {\n            aiData = aiOutput;\n        }\n        \n        ancho = aiData.ancho_cm !== undefined && aiData.ancho_cm !== null ? parseFloat(aiData.ancho_cm) : null;\n        alto = aiData.alto_cm !== undefined && aiData.alto_cm !== null ? parseFloat(aiData.alto_cm) : null;\n        cantidad = aiData.cantidad !== undefined && aiData.cantidad !== null ? parseInt(aiData.cantidad, 10) : 1;\n    } catch (e) {\n        error_log = \"Error al leer datos del nodo de IA o no se ejecutó: \" + e.message;\n    }\n}\n\n// Estructura de respuesta por defecto\nconst responseData = {\n    ok: true,\n    encontrado: false,\n    respuesta: \"\",\n    cantidad_solicitada: isNaN(cantidad) ? 1 : cantidad,\n    cantidad_disponible: 0,\n    precio_unitario: precio_unitario,\n    total_estimado: 0,\n    productos: [],\n    alternativas: [],\n    error_log: error_log\n};\n\n// Caso D: Faltan medidas (ancho o alto no identificados)\nif (ancho === null || alto === null || isNaN(ancho) || isNaN(alto)) {\n    responseData.respuesta = \"Para revisar el stock necesito la medida aproximada: ancho x alto, en centímetros. Ejemplo: 21 x 100 cm.\";\n    responseData.lead = {\n        fecha_hora: new Date().toISOString(),\n        mensaje: mensaje,\n        nombre: nombre,\n        telefono: telefono,\n        ancho_solicitado_cm: ancho,\n        alto_solicitado_cm: alto,\n        cantidad_solicitada: responseData.cantidad_solicitada,\n        encontrado: false,\n        cantidad_disponible: 0,\n        ids_encontrados: \"\",\n        total_estimado: 0,\n        respuesta_entregada: responseData.respuesta\n    };\n    return [ { json: responseData } ];\n}\n\n// 4. Leer filas de Google Sheets de forma segura\nlet rows = [];\ntry {\n    const rawRows = $('Google Sheets: Leer Inventario').all();\n    if (rawRows.length > 0 && rawRows[0].json.error) {\n        throw new Error(rawRows[0].json.error.message || \"Error en Google Sheets\");\n    }\n    rows = rawRows.map(item => item.json);\n} catch (e) {\n    responseData.respuesta = \"No pudimos revisar el inventario en este momento. Escríbenos por WhatsApp para confirmar disponibilidad.\";\n    responseData.error_log = \"Error al leer Google Sheets: \" + e.message;\n    responseData.lead = {\n        fecha_hora: new Date().toISOString(),\n        mensaje: mensaje,\n        nombre: nombre,\n        telefono: telefono,\n        ancho_solicitado_cm: ancho,\n        alto_solicitado_cm: alto,\n        cantidad_solicitada: responseData.cantidad_solicitada,\n        encontrado: false,\n        cantidad_disponible: 0,\n        ids_encontrados: \"\",\n        total_estimado: 0,\n        respuesta_entregada: responseData.respuesta\n    };\n    return [ { json: responseData } ];\n}\n\n// 5. Filtrar inventario válido\nconst cleanInventory = rows.filter(row => {\n    if (row.ancho_cm === undefined || row.alto_cm === undefined) return false;\n    const unidades = parseInt(row.unidades || 0, 10);\n    const estado = (row.estado || \"\").toLowerCase().trim();\n    const isAgotado = estado.includes(\"agotado\") || estado.includes(\"vendido\") || estado.includes(\"no disponible\");\n    return unidades > 0 && !isAgotado;\n});\n\n// 6. Buscar coincidencia exacta (tolerancia +- 0.5 cm)\nconst exactMatches = cleanInventory.filter(row => {\n    const rowAncho = parseFloat(row.ancho_cm);\n    const rowAlto = parseFloat(row.alto_cm);\n    return Math.abs(rowAncho - ancho) <= 0.5 && Math.abs(rowAlto - alto) <= 0.5;\n});\n\nconst formatCurrency = (val) => {\n    return \"$\" + val.toLocaleString(\"es-CL\").replace(/,/g, \".\");\n};\n\nif (exactMatches.length > 0) {\n    const totalDisponibles = exactMatches.reduce((acc, row) => acc + parseInt(row.unidades || 0, 10), 0);\n    const listadoProductos = exactMatches.map(row => ({\n        id: row.id || \"\",\n        tipo: row.tipo || \"Fijo\",\n        medida_cm: row.medida_cm || `${row.ancho_cm} x ${row.alto_cm} cm`,\n        unidades: parseInt(row.unidades || 0, 10),\n        descripcion: row.descripcion || `Termopanel fijo ${row.ancho_cm} x ${row.alto_cm} cm`,\n        rack: row.rack || \"\"\n    }));\n\n    responseData.encontrado = true;\n    responseData.cantidad_disponible = totalDisponibles;\n    responseData.productos = listadoProductos;\n\n    const principalDesc = listadoProductos[0].descripcion;\n\n    if (totalDisponibles >= responseData.cantidad_solicitada) {\n        const totalEstimado = responseData.cantidad_solicitada * precio_unitario;\n        responseData.total_estimado = totalEstimado;\n        responseData.respuesta = `Sí, tenemos ${responseData.cantidad_solicitada} unidad(es) disponible(s) de ${principalDesc}. Valor estimado: ${formatCurrency(totalEstimado)}. Retiro coordinado en El Monte; no realizamos despachos. Escríbenos para coordinar disponibilidad final y retiro.`;\n    } else {\n        responseData.respuesta = `Tenemos ${totalDisponibles} unidad(es) disponibles de ${principalDesc}, pero solicitaste ${responseData.cantidad_solicitada}. Valor por unidad: ${formatCurrency(precio_unitario)}. Retiro coordinado en El Monte.`;\n    }\n} else {\n    const alternatives = cleanInventory.map(row => {\n        const rowAncho = parseFloat(row.ancho_cm);\n        const rowAlto = parseFloat(row.alto_cm);\n        const diffAncho = rowAncho - ancho;\n        const diffAlto = rowAlto - alto;\n        const distance = Math.sqrt(diffAncho * diffAncho + diffAlto * diffAlto);\n        return { row, distance };\n    });\n    \n    alternatives.sort((a, b) => a.distance - b.distance);\n    \n    const top3 = alternatives.slice(0, 3).map(alt => ({\n        id: alt.row.id || \"\",\n        tipo: alt.row.tipo || \"Fijo\",\n        medida_cm: alt.row.medida_cm || `${alt.row.ancho_cm} x ${alt.row.alto_cm} cm`,\n        unidades: parseInt(alt.row.unidades || 0, 10),\n        descripcion: (alt.row.descripcion || `Termopanel fijo ${alt.row.ancho_cm} x ${alt.row.alto_cm} cm`) + \" (medida similar, no exacta)\",\n        rack: alt.row.rack || \"\"\n    }));\n    \n    responseData.alternativas = top3;\n    responseData.respuesta = `No encontramos stock exacto de ${ancho} x ${alto} cm. Te mostramos medidas similares disponibles para que puedas revisarlas. Para una confirmación o combinación de medidas, contáctanos por WhatsApp.`;\n}\n\n// Generar objeto Lead listo para Google Sheets\nresponseData.lead = {\n    fecha_hora: new Date().toISOString(),\n    mensaje: mensaje,\n    nombre: nombre,\n    telefono: telefono,\n    ancho_solicitado_cm: ancho,\n    alto_solicitado_cm: alto,\n    cantidad_solicitada: responseData.cantidad_solicitada,\n    encontrado: responseData.encontrado,\n    cantidad_disponible: responseData.cantidad_disponible,\n    ids_encontrados: responseData.productos.map(p => p.id).join(', '),\n    total_estimado: responseData.total_estimado,\n    respuesta_entregada: responseData.respuesta\n};\n\nreturn [ { json: responseData } ];"
+      },
+      "id": "58f972b2-658b-4a57-b08e-f14bf76e5d27",
+      "name": "Filtrar y Cotizar Stock",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Consultas",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fecha_hora": "={{ $json.lead.fecha_hora }}",
+            "mensaje": "={{ $json.lead.mensaje }}",
+            "nombre": "={{ $json.lead.nombre }}",
+            "telefono": "={{ $json.lead.telefono }}",
+            "ancho_solicitado_cm": "={{ $json.lead.ancho_solicitado_cm }}",
+            "alto_solicitado_cm": "={{ $json.lead.alto_solicitado_cm }}",
+            "cantidad_solicitada": "={{ $json.lead.cantidad_solicitada }}",
+            "encontrado": "={{ $json.lead.encontrado }}",
+            "cantidad_disponible": "={{ $json.lead.cantidad_disponible }}",
+            "ids_encontrados": "={{ $json.lead.ids_encontrados }}",
+            "total_estimado": "={{ $json.lead.total_estimado }}",
+            "respuesta_entregada": "={{ $json.lead.respuesta_entregada }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "68f972b2-658b-4a57-b08e-f14bf76e5d28",
+      "name": "Google Sheets: Registrar Consulta",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1360,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "78f972b2-658b-4a57-b08e-f14bf76e5d29",
+      "name": "Responder Cliente",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1580,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook de Entrada": {
+      "main": [
+        [
+          {
+            "node": "¿Vienen Medidas?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Vienen Medidas?": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Leer Inventario",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nodo de IA: Extraer Medidas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nodo de IA: Extraer Medidas": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Leer Inventario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets: Leer Inventario": {
+      "main": [
+        [
+          {
+            "node": "Filtrar y Cotizar Stock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar y Cotizar Stock": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Registrar Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets: Registrar Consulta": {
+      "main": [
+        [
+          {
+            "node": "Responder Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
