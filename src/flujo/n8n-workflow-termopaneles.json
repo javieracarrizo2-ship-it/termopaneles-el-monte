@@ -1,5 +1,5 @@
 {
-  "name": "Consulta de Stock y Registro de Leads - Termopaneles El Monte",
+  "name": "Termopaneles",
   "nodes": [
     {
       "parameters": {
@@ -7,17 +7,16 @@
         "path": "cotizar-termopanel",
         "responseMode": "responseNode",
         "options": {
-          "cors": true,
-          "allowedOrigins": "https://termopaneles-el-monte.vercel.app, http://localhost:3000, http://localhost:5173, http://localhost:8080"
+          "allowedOrigins": "=https://termopaneles-el-monte-termo-s-projects.vercel.app, http://localhost:3000, http://localhost:5173, http://localhost:8080"
         }
       },
-      "id": "6ba660d2-8f80-446c-97f6-ee48230a08ff",
+      "id": "6423f3a8-24da-4baa-9a32-341c65445204",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        0,
-        0
+        528,
+        480
       ],
       "webhookId": "dc4224c4-bcee-4679-ae58-a43f8bab9ae7"
     },
@@ -26,27 +25,48 @@
         "url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSeHty4SN7j5L3ypMmiOSSlGYGOnd_qkU8LTwRO1aC55yZXMzPxdIQJ4MRQ6auYdhxpoMuS1R9nj_Ft/pub?output=csv",
         "options": {}
       },
-      "id": "5224ab8e-7ac4-4f95-8632-c4b4397c0ca7",
+      "id": "90daf70f-9f6c-420f-a7ee-51c2b91eeb1f",
       "name": "Fetch Inventory CSV",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        200,
-        0
+        752,
+        480
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "function parseCSV(text) {\n    const lines = text.split(/\\r?\\n/);\n    if (lines.length === 0 || !lines[0]) return [];\n    \n    const headers = lines[0].split(',').map(h => h.trim());\n    const result = [];\n    \n    for (let i = 1; i < lines.length; i++) {\n        const line = lines[i].trim();\n        if (!line) continue;\n        \n        const row = [];\n        let inQuotes = false;\n        let currentValue = '';\n        \n        for (let j = 0; j < line.length; j++) {\n            const char = line[j];\n            if (char === '\"') {\n                inQuotes = !inQuotes;\n            } else if (char === ',' && !inQuotes) {\n                row.push(currentValue.trim());\n                currentValue = '';\n            } else {\n                currentValue += char;\n            }\n        }\n        row.push(currentValue.trim());\n        \n        if (row.length >= headers.length) {\n            const obj = {};\n            headers.forEach((header, index) => {\n                let val = row[index];\n                if (val && val.startsWith('\"') && val.endsWith('\"')) {\n                    val = val.substring(1, val.length - 1);\n                }\n                obj[header] = val;\n            });\n            result.push(obj);\n        }\n    }\n    return result;\n}\n\nconst webhookInput = $('Webhook').first().json.body || $('Webhook').first().json || {};\nconst csvText = $('Fetch Inventory CSV').first().json.data || '';\n\nconst inventory = parseCSV(csvText).map(row => {\n    return {\n        id: row.id || '',\n        ancho_cm: parseFloat(row.ancho_cm) || 0,\n        alto_cm: parseFloat(row.alto_cm) || 0,\n        unidades: parseInt(row.unidades, 10) || 0,\n        rack: row.rack || '',\n        estado: row.estado || ''\n    };\n});\n\nlet itemsToQuote = [];\nlet totalUnits = 0;\n\nif (webhookInput.origen === 'carrito' && Array.isArray(webhookInput.items)) {\n    itemsToQuote = webhookInput.items.map(item => ({\n        ancho_cm: parseFloat(item.ancho_cm),\n        alto_cm: parseFloat(item.alto_cm),\n        qty: parseInt(item.qty, 10) || 1\n    }));\n} else if (webhookInput.ancho_cm && webhookInput.alto_cm) {\n    itemsToQuote = [{\n        ancho_cm: parseFloat(webhookInput.ancho_cm),\n        alto_cm: parseFloat(webhookInput.alto_cm),\n        qty: parseInt(webhookInput.qty, 10) || 1\n    }];\n} else {\n    const msg = webhookInput.message || webhookInput.text || '';\n    const match = msg.match(/(\\d+(?:\\.\\d+)?)\\s*x\\s*(\\d+(?:\\.\\d+)?)/i);\n    if (match) {\n        const qtyMatch = msg.match(/(?:necesito|quiero|cantidad|unidades|qty)?\\s*(\\\\d+)\\s*(?:unidad|unidades|termo|termopanel)/i) || [null, \"1\"];\n        itemsToQuote = [{\n            ancho_cm: parseFloat(match[1]),\n            alto_cm: parseFloat(match[2]),\n            qty: parseInt(qtyMatch[1], 10) || 1\n        }];\n    }\n}\n\ntotalUnits = itemsToQuote.reduce((sum, item) => sum + item.qty, 0);\n\nlet unitPrice = 25000;\nlet discountLabel = 'Precio minorista normal';\nif (totalUnits >= 40) {\n    unitPrice = 15000;\n    discountLabel = 'Precio súper mayorista (40+ unidades)';\n} else if (totalUnits >= 10) {\n    unitPrice = 20000;\n    discountLabel = 'Precio mayorista (10-39 unidades)';\n}\n\nconst itemsSummary = itemsToQuote.map(req => {\n    const match = inventory.find(inv => \n        Math.abs(inv.ancho_cm - req.ancho_cm) <= 1.5 && \n        Math.abs(inv.alto_cm - req.alto_cm) <= 1.5 &&\n        inv.unidades > 0\n    );\n    \n    const availableStock = match ? match.unidades : 0;\n    const rackLocation = match ? match.rack : 'No especificado';\n    const status = availableStock >= req.qty ? 'Disponible' : (availableStock > 0 ? 'Stock Insuficiente' : 'Sin Stock');\n    \n    return {\n        ancho_cm: req.ancho_cm,\n        alto_cm: req.alto_cm,\n        solicitado: req.qty,\n        stock_disponible: availableStock,\n        rack: rackLocation,\n        estado: status,\n        total_item_precio: req.qty * unitPrice\n    };\n});\n\nconst allAvailable = itemsSummary.length > 0 && itemsSummary.every(item => item.estado === 'Disponible');\nconst totalCalc = totalUnits * unitPrice;\n\nreturn {\n    origen: webhookInput.origen || 'whatsapp_directo',\n    totalUnits,\n    unitPrice,\n    totalCalc,\n    discountLabel,\n    itemsSummary,\n    allAvailable,\n    clientPhone: webhookInput.from || webhookInput.sender || '',\n    clientEmail: webhookInput.email || ''\n};"
       },
-      "id": "a7de15a0-23c4-4106-8025-700912f082fd",
+      "id": "2c522b93-cdc8-4838-b482-7a023ede56ef",
       "name": "Parse & Calculate Stock/Price",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        400,
-        0
+        976,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin:",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "3b0cb4e6-62b2-4192-889b-f402fd1b0304",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1776,
+        288
       ]
     },
     {
@@ -69,43 +89,29 @@
       "type": "@n8n/n8n-nodes-langchain.googleGemini",
       "typeVersion": 1.2,
       "position": [
-        600,
-        0
+        1200,
+        384
       ],
-      "id": "3ccf85bb-500c-4221-9edb-d282c89d9bef",
-      "name": "Message a model",
+      "id": "641ab2a4-1770-4571-9dea-f728ae64fa78",
+      "name": "Message a model1",
       "credentials": {
         "googlePalmApi": {
-          "id": "4ZHj8MGLqLNXImbh",
+          "id": "GN1A1rYUwbW3ltUx",
           "name": "Google Gemini(PaLM) Api account"
         }
       }
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const aiOutput = $('Message a model').first().json;\nlet text = '';\n\nif (typeof aiOutput === 'string') {\n    text = aiOutput;\n} else if (aiOutput.message && aiOutput.message.content) {\n    text = aiOutput.message.content;\n} else if (aiOutput.text) {\n    text = aiOutput.text;\n} else if (aiOutput.output) {\n    text = aiOutput.output;\n} else {\n    text = JSON.stringify(aiOutput);\n}\n\nreturn [\n  {\n    json: {\n      ok: true,\n      encontrado: $('Parse & Calculate Stock/Price').first().json.allAvailable,\n      respuesta: text,\n      mensaje_sugerido: text,\n      clientEmail: $('Parse & Calculate Stock/Price').first().json.clientEmail\n    }\n  }\n];"
+        "jsCode": "const aiOutput = $('Message a model1').first().json;\nlet text = '';\n\nif (typeof aiOutput === 'string') {\n    text = aiOutput;\n} else if (aiOutput.content && aiOutput.content.parts && Array.isArray(aiOutput.content.parts)) {\n    text = aiOutput.content.parts.map(part => part.text || '').join('');\n} else if (aiOutput.message && aiOutput.message.content) {\n    text = aiOutput.message.content;\n} else if (aiOutput.text) {\n    text = aiOutput.text;\n} else if (aiOutput.output) {\n    text = aiOutput.output;\n} else {\n    text = JSON.stringify(aiOutput);\n}\n\nreturn [\n  {\n    json: {\n      ok: true,\n      encontrado: $('Parse & Calculate Stock/Price').first().json.allAvailable,\n      respuesta: text,\n      mensaje_sugerido: text,\n      clientEmail: $('Parse & Calculate Stock/Price').first().json.clientEmail\n    }\n  }\n];"
       },
-      "id": "e931d401-1039-47e7-a07b-cbd1d84bca82",
-      "name": "Format Response",
+      "id": "0d000c83-eee1-459e-8e8a-066803592ab8",
+      "name": "Format Response1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        800,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "id": "4176c854-4c50-4e4f-b011-0f05f32218b9",
-      "name": "Respond to Webhook",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        1000,
-        0
+        1552,
+        384
       ]
     },
     {
@@ -113,71 +119,238 @@
         "operation": "append",
         "documentId": {
           "__rl": true,
-          "value": "YOUR_SPREADSHEET_ID",
-          "mode": "id"
+          "value": "https://docs.google.com/spreadsheets/d/1XiVBqJeEwqdkMm3JSrA33OnbGS9N9mfvRjPg-U006no/edit?gid=389962123#gid=389962123",
+          "mode": "url"
         },
         "sheetName": {
           "__rl": true,
-          "value": "Consultas",
+          "value": "inventario-maestro-limpio",
           "mode": "name"
         },
         "columns": {
           "mappingMode": "defineBelow",
-          "value": {
-            "fecha_hora": "={{ new Date().toISOString() }}",
-            "mensaje": "={{ $('Webhook').first().json.body.mensaje || $('Webhook').first().json.body.text || '' }}",
-            "nombre": "={{ $('Webhook').first().json.body.nombre || '' }}",
-            "telefono": "={{ $json.clientPhone }}",
-            "ancho_solicitado_cm": "={{ $json.itemsSummary[0] ? $json.itemsSummary[0].ancho_cm : null }}",
-            "alto_solicitado_cm": "={{ $json.itemsSummary[0] ? $json.itemsSummary[0].alto_cm : null }}",
-            "cantidad_solicitada": "={{ $json.totalUnits }}",
-            "encontrado": "={{ $json.allAvailable }}",
-            "cantidad_disponible": "={{ $json.itemsSummary[0] ? $json.itemsSummary[0].stock_disponible : 0 }}",
-            "ids_encontrados": "={{ $json.itemsSummary.map(item => item.rack).join(', ') }}",
-            "total_estimado": "={{ $json.totalCalc }}",
-            "respuesta_entregada": "={{ $('Message a model').first().json.text || $('Message a model').first().json.message?.content || $('Message a model').first().json.output || '' }}"
-          },
-          "matchingColumns": [],
-          "schema": []
+          "value": {},
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ancho_cm",
+              "displayName": "ancho_cm",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "alto_cm",
+              "displayName": "alto_cm",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "unidades",
+              "displayName": "unidades",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "medida_cm",
+              "displayName": "medida_cm",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "medida_m",
+              "displayName": "medida_m",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "descripcion",
+              "displayName": "descripcion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "rack",
+              "displayName": "rack",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {}
       },
-      "continueOnFail": true,
-      "id": "58f972b2-658b-4a57-b08e-f14bf76e5d28",
-      "name": "Google Sheets: Registrar Consulta",
+      "id": "c35a5114-dbd4-4a2d-92a3-71bbde80494c",
+      "name": "Google Sheets: Registrar Consulta1",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.2,
       "position": [
-        600,
-        200
+        1248,
+        640
       ],
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID"
+          "id": "MWmhjcZd6RoT88iV",
+          "name": "Google Sheets OAuth2 API"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "fromEmail": "Termopaneles El Monte <notificaciones@termopaneleselmonte.cl>",
-        "toEmail": "={{ $json.clientEmail || 'thelowkeyfits@gmail.com' }}",
+        "sendTo": "horacio.sanchez1509@gmail.com",
         "subject": "Nueva Cotización de Termopanel - El Monte",
-        "html": "={{ $json.respuesta.replace(/\\n/g, '<br>') }}",
+        "message": "={{ $json.respuesta.replace(/\\*\\*/g, '').replace(/\\n/g, '<br>') }}",
         "options": {}
       },
-      "continueOnFail": true,
-      "id": "e4024df8-fedf-4438-9a43-8327e5225ac7",
-      "name": "Enviar Email de Cotización",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 1,
+      "id": "dcb60dd1-92e2-4538-aabc-18717edb022b",
+      "name": "Enviar Email de Cotización1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
       "position": [
-        1000,
-        200
+        1776,
+        480
       ],
+      "webhookId": "3f5b1043-7432-4627-b457-c2fcc6396287",
       "credentials": {
-        "smtp": {
-          "id": null,
-          "name": "SMTP Credentials"
+        "gmailOAuth2": {
+          "id": "bR3lN0rs1tQJveiJ",
+          "name": "Gmail OAuth2 API"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1XiVBqJeEwqdkMm3JSrA33OnbGS9N9mfvRjPg-U006no",
+          "mode": "list",
+          "cachedResultName": "Inventario actualizado",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XiVBqJeEwqdkMm3JSrA33OnbGS9N9mfvRjPg-U006no/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1305014964,
+          "mode": "list",
+          "cachedResultName": "Consultas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XiVBqJeEwqdkMm3JSrA33OnbGS9N9mfvRjPg-U006no/edit#gid=1305014964"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha ": "={{ new Date().toLocaleString(\"es-CL\") }}",
+            "Mail ": "={{ $json.clientEmail || $('Webhook').first().json.body.email || '' }}",
+            "Mensaje ": "={{ $('Format Response1').first().json.respuesta }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha ",
+              "displayName": "Fecha ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Mail ",
+              "displayName": "Mail ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Mensaje ",
+              "displayName": "Mensaje ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1984,
+        480
+      ],
+      "id": "4ed7f530-8883-4eb0-affb-31d68024fae4",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MWmhjcZd6RoT88iV",
+          "name": "Google Sheets OAuth2 API"
         }
       }
     }
@@ -210,30 +383,30 @@
       "main": [
         [
           {
-            "node": "Message a model",
+            "node": "Message a model1",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Google Sheets: Registrar Consulta",
+            "node": "Google Sheets: Registrar Consulta1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Message a model": {
+    "Message a model1": {
       "main": [
         [
           {
-            "node": "Format Response",
+            "node": "Format Response1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Format Response": {
+    "Format Response1": {
       "main": [
         [
           {
@@ -242,7 +415,18 @@
             "index": 0
           },
           {
-            "node": "Enviar Email de Cotización",
+            "node": "Enviar Email de Cotización1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Email de Cotización1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
             "type": "main",
             "index": 0
           }
@@ -250,18 +434,18 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "1f5c5b2c-0fcb-4e8b-97b9-c0420fee4b51",
+  "versionId": "5e79005d-3d14-430e-b4fa-ace5327df20b",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "3fb8becb0218a61e03b1bc8ad5ca2ba43072e5725341f4a45c774c271e2fea82"
+    "instanceId": "52090bea3bcf3c94cc270db4e8ef6c57eb496ce129851816df59ac5a29da45aa"
   },
   "nodeGroups": [],
-  "id": "dhw3leQulgZfFXFI",
+  "id": "aHZtMCv6Zgq1pcGL",
   "tags": []
 }
