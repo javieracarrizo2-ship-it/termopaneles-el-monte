@@ -8,6 +8,7 @@ El flujo de automatización se encuentra en el archivo [n8n-workflow-termopanele
 * **URL de Producción**: `https://<TU-DOMINIO-N8N>/webhook/termopaneles/consultar-stock`
 * **URL de Test**: `https://<TU-DOMINIO-N8N>/webhook-test/termopaneles/consultar-stock`
 * **CORS**: Habilitado para responder llamadas de frontend desde:
+  * `https://termopaneles-el-monte-termo-s-projects.vercel.app`
   * `https://termopaneles-el-monte.vercel.app`
   * `http://localhost:3000` (desarrollo local)
   * `http://localhost:5173` (desarrollo local Vite)
