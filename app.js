@@ -531,7 +531,7 @@ window.buyProductDirectly = async function(productId) {
     }
 
     try {
-        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook-test/cotizar-termopanel', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -968,7 +968,7 @@ async function checkoutCart() {
     const totalCalc = totalUnits * pricing.unitPrice;
 
     try {
-        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook-test/cotizar-termopanel', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -2281,7 +2281,7 @@ window.quoteProposalOnWhatsApp = async function(serializedProposal) {
             qty: 1
         }));
 
-        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook-test/cotizar-termopanel', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -2322,7 +2322,7 @@ window.quoteCustomClosing = async function(widthVal, heightVal) {
     }
 
     try {
-        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook-test/cotizar-termopanel', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -2361,7 +2361,7 @@ window.quotePlannerFallback = async function(targetW, targetH) {
     }
 
     try {
-        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook/cotizar-termopanel', {
+        const response = await fetch('https://javicarrizo.app.n8n.cloud/webhook-test/cotizar-termopanel', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
