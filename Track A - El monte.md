@@ -92,7 +92,7 @@ En segundo lugar, desarrollamos un workflow que recibe la solicitud mediante el 
 | Automatización | Capa 1 | src/flujo/n8n-workflow-termopaneles.json  |
 | IA | Capa 1 | /src/prompts/system.md  |
 | BBDD | Capa 1 | https://docs.google.com/spreadsheets/d/1XiVBqJeEwqdkMm3JSrA33OnbGS9N9mfvRjPg-U006no/edit?gid=324384237\#gid=324384237) o /src/bbdd/URL-Sheets |
-| FrontEnd | Capa 1 | https://termopaneles-el-monte.vercel.app/\# o src/ui/URL-Página-web |
+| FrontEnd | Capa 1 | https://termopaneleselmonte-termo-s-projects.vercel.app/\# o src/ui/URL-Página-web |
 
 **6\.    INTERACCIÓN DEL USUARIO**
 

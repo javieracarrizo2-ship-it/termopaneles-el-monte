@@ -25,73 +25,47 @@ Este es el repositorio oficial del MVP de **Termopaneles El Monte**, desarrollad
 - **Profesor:** Benjamín Happey
 - **Track elegido:** Track A
 - **Tipo declarado:** MVP
+- **Sitio desplegado:** https://termopaneleselmonte-termo-s-projects.vercel.app/
+- **Repositorio:** https://github.com/javieracarrizo2-ship-it/termopaneles-el-monte
 
 ## 2. Resumen ejecutivo
 
 Construimos una página web de apoyo en ventas para Termopaneles El Monte que organiza el stock disponible de termopaneles por medida, y ayuda a convertir las visitas provenientes de Facebook Marketplace en consultas más claras. La solución permite filtrar termopaneles por medida, visualizar sus proporciones mediante una vista previa, estimar qué medidas podrían servir como referencia mediante el planificador de cobertura, y orientarse con la calculadora de vano. El tiempo de respuesta bajó de ~24 horas a ~5 minutos y las visualizaciones semanales aumentaron de ~500 a ~1.500. En la primera semana de uso se concretaron 3 ventas (ticket promedio $50.000), equivalente a ~$150.000 semanales o ~$600.000 CLP mensuales proyectados. Con una inversión inicial de $1.710.000, el payback estimado es de 2,9 meses.
 
 ## 3. Problema y solución
-
 **El dolor:** Termopaneles El Monte vende unidades de remate con medidas fijas y variables entre sí, no termopaneles a medida. Esto dificulta la gestión de stock (muchos SKUs distintos, imposible estandarizar precios) y complica al cliente identificar qué medida necesita. En los últimos 30 días la empresa recibió 70 consultas por Facebook Marketplace; ~30% (≈21 consultas mensuales) no se respondían en menos de 24 horas, representando una oportunidad de venta afectada de ~$1.050.000 CLP mensuales.
 
-**La solución:** Una plataforma web que centraliza el inventario, permite filtrar por ancho/largo, visualizar proporciones, y usar un planificador de cobertura y calculadora de vano. Un flujo en n8n se activa al cotizar, consulta el inventario en tiempo real (tolerancia ±5 cm) y genera un mensaje de WhatsApp enriquecido y listo para enviar, registrando cada consulta en una planilla de leads. Javiera valida disponibilidad real, precio final y coordina el retiro antes de cerrar cada venta.
+**La solución:** Una plataforma web estática que centraliza el inventario directamente en el navegador del cliente leyendo el catálogo publicado como CSV desde Google Sheets. Incluye visualización de proporciones, calculadora de vano y planificador de cobertura. Al cotizar, genera un enlace de WhatsApp directo con el detalle exacto de su solicitud para que el cliente lo envíe con un solo clic. Javiera valida disponibilidad real, precio final y coordina el retiro.
 
 ## 4. Arquitectura
 
-            CANAL                     BACKEND (n8n)                                  AGENTE / DESTINOS
-+-------------------+     +----------------------------------------+     +-------------------------------+
-| Cliente en Web    |     | 1. Webhook (POST)                      |     | 4. AI Agent (Model 1)         |
-| (Catálogo /       |---->|    - Recibe solicitud del cliente      |---->|    - Mensaje de texto         |
-|  Carrito)         |     +----------------------------------------+     |    - Uso de Herramientas      |
-+-------------------+                         |                          +-------------------------------+
-                                              v                                          |
-                          +----------------------------------------+                     | respuesta
-                          | 2. Fetch Inventory CSV                 |                     v
-                          |    - GET de Google Sheets (docs)       |     +-------------------------------+
-                          +----------------------------------------+     | 5. Format Response 1          |
-                                              |                          |    - Parsea salida AI         |
-                                              v                          +-------------------------------+
-                          +----------------------------------------+                     |
-                          | 3. Parse & Calculate Stock/Price       |                     |
-                          |    - Lógica de negocio e inventario    |                     v
-                          +----------------------------------------+     +-------------------------------+
-                                       /              \                  | 6. Respond to Webhook         |
-                                      /                \                 |    - Retorno inmediato        |
-                                     v                  v                +-------------------------------+
-                        +--------------------+  +--------------------+                   |
-                        | Google Sheets:     |  | Enviar Email de    |                   v
-                        | Registrar Consulta |  | Cotización (Gmail) |   +-------------------------------+
-                        | - Registro de Lead |  | - Mensaje al clte. |   | Append row in sheet           |
-                        +--------------------+  +--------------------+   | - Registro final de           |
-                                                          |              |   operación y estado          |
-                                                          v              +-------------------------------+
-                                                +--------------------+
-                                                | Javiera (WhatsApp) |
-                                                | - Validación manual|
-                                                | - Coordinación fin |
-                                                +--------------------+
-            
+            CLIENTE                        GOOGLE SHEETS (BBDD)
+    +-----------------------+           +-----------------------+
+    | Catálogo Web (HTML/JS)| <-------> | Google Sheets (CSV)   | (Lectura de stock en vivo)
+    +-----------------------+           +-----------------------+
+                |
+                v (Genera enlace de WhatsApp con cotización resumida)
+    +-----------------------+
+    | WhatsApp (Javiera)    |
+    | - Validación manual   |
+    | - Coordinación retiro |
+    +-----------------------+
+
 ## 5. Las 4 verticales
 
-Vertical	     |  Capa cumplida	 |  Dónde está la evidencia
-Automatización |  Capa 1	       | src/flujo/n8n-workflow-termopaneles.json
-IA             |	Capa 1	       | /src/prompts/system.md 
-BBDD	         |  Capa 1       	 | Link a Google Sheets: (https://docs.google.com/spreadsheets/d/1XiVBqJeEwqdkMm3JSrA33OnbGS9N9mfvRjPg-U006no/edit?gid=324384237#gid=324384237) o /src/bbdd/URL-Sheets
-Front	         | Capa 1 	       | Link web: https://termopaneles-el-monte-termo-s-projects.vercel.app/ o src/ui/URL-Página-web
-
+Vertical       | Capa cumplida | Dónde está la evidencia
+BBDD           | Capa 1        | Link a Google Sheets: (https://docs.google.com/spreadsheets/d/1XiVBqJeEwqdkMm3JSrA33OnbGS9N9mfvRjPg-U006no/edit?gid=324384237#gid=324384237) o /src/bbdd/URL-Sheets
+Front          | Capa 1        | Link web: https://termopaneleselmonte-termo-s-projects.vercel.app/ o src/ui/URL-Página-web
 
 ## 6. Touchpoint del usuario
 
-El usuario final (cliente) gatilla la solución desde la web, al cotizar una medida y cantidad de termopanel en el catálogo o carrito. Recibe el resultado por WhatsApp, en un mensaje enriquecido con el stock real disponible, generado automáticamente por el agente.
+El usuario final (cliente) gatilla la solución desde la web, al cotizar una medida y cantidad de termopanel en el catálogo o carrito. Esto genera un mensaje compacto de WhatsApp que abre el chat listo para enviar a la vendedora.
 
 ## 7. Cómo correrlo
 
-- Requisitos: cuenta n8n (cloud o self-hosted), acceso a Google Sheets API, número de WhatsApp Business (o API de WhatsApp usada).
-- Credenciales: conectar credencial de Google Sheets en n8n, credencial de WhatsApp/API en el nodo correspondiente (usar mock/sandbox si no quieren exponer las reales).
-- Importar workflow: en n8n, "Import from File" → cargar workflow.json desde src/flujo/.
-- Configurar Sheet: copiar la planilla de inventario y de leads, pegar sus IDs en los nodos de Google Sheets del workflow.
-- Activar webhook: copiar la URL del nodo Webhook y pegarla en la web (app.js o donde se hace el fetch).
-- Probar: cotizar una medida desde la web y verificar que llegue el mensaje por WhatsApp y se registre el lead.
+- Requisitos: Un servidor web estático local (como Live Server o VS Code extension) o hosting (Vercel).
+- Configuración: Configurar `googleSheetUrl` en `app.js` con el enlace CSV publicado de Google Sheets.
+- Probar: Cotizar una medida desde la web y verificar que se abra el chat de WhatsApp con el mensaje resumido.erificar que llegue el mensaje por WhatsApp y se registre el lead.
 
 ## 8. Sección track-específica (Track A)
 

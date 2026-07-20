@@ -484,13 +484,12 @@ card.innerHTML = `
            </div>
            
            <div class="product-actions">
-               <button onclick="buyProductDirectly('${product.id}')" class="cta-button" id="btn-quote-${product.id}" style="background-color: var(--color-olive); color: white;">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
-                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                       <polyline points="22,6 12,13 2,6"></polyline>
-                   </svg>
-                   Cotizar
-               </button>
+                <button onclick="buyProductDirectly('${product.id}')" class="cta-button" id="btn-quote-${product.id}" style="background-color: var(--color-olive); color: white;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24" style="margin-right: 8px;">
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.003 5.324 5.328 0 11.859 0c3.166.001 6.141 1.233 8.377 3.469 2.235 2.237 3.465 5.212 3.463 8.379-.004 6.536-5.328 11.86-11.859 11.86-2.004-.001-3.971-.51-5.713-1.482L0 24zm6.59-4.817c1.52.901 3.422 1.378 5.26 1.379 5.433.002 9.85-4.411 9.853-9.843.002-2.632-1.025-5.105-2.89-6.973A9.78 9.78 0 0 0 11.859 1.8c-5.435 0-9.853 4.413-9.856 9.847-.001 1.942.508 3.841 1.478 5.51l-.979 3.57 3.645-.956zm11.821-6.183c-.302-.151-1.788-.882-2.057-.981-.268-.099-.463-.147-.657.147-.195.294-.757.981-.928 1.178-.171.196-.341.221-.643.07-1.126-.567-1.894-.961-2.656-2.274-.2-.345.2-.321.572-1.066.061-.124.03-.232-.015-.332-.045-.099-.463-1.117-.635-1.529-.166-.399-.333-.344-.462-.35-.119-.006-.256-.008-.393-.008s-.36.051-.548.256c-.188.204-.717.701-.717 1.708 0 1.007.734 1.981.836 2.117.103.136 1.446 2.208 3.503 3.093.489.211.87.337 1.168.432.492.156.939.134 1.293.081.395-.06 1.788-.731 2.037-1.438.25-1.008.25-1.871.175-2.057-.074-.187-.269-.286-.572-.437z"/>
+                    </svg>
+                    Cotizar por WhatsApp
+                </button>
                <button class="cta-button add-to-cart-btn" onclick="addToCart('${product.id}')" id="btn-add-cart-${product.id}">
                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                        <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -505,6 +504,24 @@ DOM.productsGrid.appendChild(card);
 });
 }
 
+// Helper functions for pricing and currency formatting
+function getProductPrice(product) {
+    if (!product) return 25000;
+    // Look up in the master list if this is a cart item copy
+    const masterProduct = appState.products && appState.products.find(p => p.id === product.id);
+    if (masterProduct && masterProduct.precio !== undefined && masterProduct.precio !== null) {
+        return Number(masterProduct.precio);
+    }
+    if (product.precio !== undefined && product.precio !== null) {
+        return Number(product.precio);
+    }
+    return 25000;
+}
+
+function formatCLP(val) {
+    return `$${Number(val).toLocaleString('es-CL')} CLP`;
+}
+
 // Direct purchase action on WhatsApp for a single product card
 window.buyProductDirectly = function(productId) {
     const product = appState.products.find(p => p.id === productId);
@@ -513,11 +530,20 @@ window.buyProductDirectly = function(productId) {
     const qtyInput = document.getElementById(`qty-val-${productId}`);
     const qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
 
-    const message = `Hola, quiero cotizar un termopanel fijo de medida ${product.ancho_cm} x ${product.alto_cm} cm.
+    const unitPrice = getProductPrice(product);
+    const totalCalc = qty * unitPrice;
 
-Necesito cotizar ${qty} unidad(es).
+    const message = `Hola, quiero cotizar este termopanel:
 
-Quedo atento/a al precio y disponibilidad actual. Gracias.`;
+Termopanel fijo ${product.ancho_cm} x ${product.alto_cm} cm
+Cantidad: ${qty} unidad(es)
+Precio unitario: ${formatCLP(unitPrice)}
+Total estimado: ${formatCLP(totalCalc)}
+
+Retiro: coordinado en El Monte, Región Metropolitana.
+
+Solo necesito confirmar disponibilidad actual.
+Gracias.`;
 
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
@@ -903,23 +929,28 @@ DOM.cartItemsList.appendChild(itemElement);
 function checkoutCart() {
     if (appState.cart.length === 0) return;
 
-    const totalUnits = appState.cart.reduce((sum, item) => sum + item.qty, 0);
-    const pricing = getCartPricing(totalUnits);
+    let totalEstimado = 0;
+    const itemsText = appState.cart.map((item, index) => {
+        const unitPrice = getProductPrice(item);
+        const subtotal = item.qty * unitPrice;
+        totalEstimado += subtotal;
 
-    const itemsText = appState.cart.map(item => {
-        return `- ${item.ancho_cm} x ${item.alto_cm} cm: ${item.qty} ud(s)`;
-    }).join('\n');
-
-    const priceAppliedText = `$${pricing.unitPrice.toLocaleString('es-CL')} c/u`;
-    const totalCalc = totalUnits * pricing.unitPrice;
-    const totalCalcText = `$${totalCalc.toLocaleString('es-CL')}`;
+        return `${index + 1}) Termopanel fijo ${item.ancho_cm} x ${item.alto_cm} cm
+Cantidad: ${item.qty}
+Precio unitario: ${formatCLP(unitPrice)}
+Subtotal: ${formatCLP(subtotal)}`;
+    }).join('\n\n');
 
     const message = `Hola, quiero cotizar los siguientes termopaneles:
 
 ${itemsText}
-Total unidades: ${totalUnits}
-Precio unitario aplicado: ${priceAppliedText}
-Total: ${totalCalcText}`;
+
+Total estimado del carrito: ${formatCLP(totalEstimado)}
+
+Retiro: coordinado en El Monte, Región Metropolitana.
+
+Solo necesito confirmar disponibilidad actual.
+Gracias.`;
 
     appState.cart = [];
     saveCart();
@@ -1116,8 +1147,11 @@ resultsContainer.innerHTML = `
                <h3>Lo sentimos, no tenemos esa medida</h3>
                <p>No disponemos de termopaneles en stock dentro del rango de diferencia de 15 cm de tu vano (${userWidth} x ${userHeight} cm).</p>
                <div class="calc-no-results-actions">
-                   <a href="#catalog-section" class="calc-btn-secondary">Ver Catálogo Completo</a>
-               </div>
+                    <a href="#catalog-section" class="calc-btn-secondary">Ver Catálogo Completo</a>
+                    <div class="calc-cross-ref-note">
+                        <span>💡 <strong>¿Tu espacio es muy grande?</strong> Intenta dividirlo en varios paños con nuestro <a onclick="scrollToSection('planner-section', 'flash-plan')">Planificador de Cobertura</a>.</span>
+                    </div>
+                </div>
            </div>
        `;
 return;
@@ -1159,6 +1193,14 @@ card.innerHTML = `
        `;
 resultsContainer.appendChild(card);
 });
+
+// If it's a large space, add a helper note to suggest the Planner
+if (userWidth > 130 || userHeight > 130) {
+    const note = document.createElement('div');
+    note.className = 'calc-cross-ref-note';
+    note.innerHTML = `<span>💡 <strong>¿Vano grande?</strong> Puedes cubrir este espacio combinando múltiples vidrios usando el <a onclick="scrollToSection('planner-section', 'flash-plan')">Planificador de Cobertura</a>.</span>`;
+    resultsContainer.appendChild(note);
+}
 }
 
 // ==========================================================================
@@ -1766,6 +1808,14 @@ return;
 
 container.innerHTML = '';
 
+// If target dimensions are small, suggest using the single-pane Calculator
+if (targetW < 160 && targetH < 220) {
+    const note = document.createElement('div');
+    note.className = 'planner-cross-ref-note';
+    note.innerHTML = `<span>💡 <strong>¿Buscas un solo panel?</strong> Para espacios más pequeños, la <a onclick="scrollToSection('calculator-section', 'flash-calc')">Calculadora de Vano</a> te muestra las medidas individuales en stock más similares.</span>`;
+    container.appendChild(note);
+}
+
 const grid = document.createElement('div');
 grid.className = 'planner-proposals-grid';
 
@@ -2196,8 +2246,6 @@ window.quoteProposalOnWhatsApp = function(serializedProposal) {
             if (!productCounts[key]) {
                 productCounts[key] = {
                     product: pane.product,
-                    width: pane.width,
-                    height: pane.height,
                     rotated: pane.rotated,
                     qty: 0
                 };
@@ -2208,24 +2256,12 @@ window.quoteProposalOnWhatsApp = function(serializedProposal) {
         let itemsText = '';
         Object.values(productCounts).forEach(item => {
             const rotText = item.rotated ? ' (Girado)' : '';
-            itemsText += `* ${item.qty} u × termopanel fijo de ${item.product.ancho_cm} x ${item.product.alto_cm} cm${rotText}\n`;
+            itemsText += `- ${item.qty} u: ${item.product.ancho_cm}x${item.product.alto_cm}cm${rotText}\n`;
         });
 
-        const pricing = getCartPricing(prop.unitCount);
-        const unitPriceText = `$${pricing.unitPrice.toLocaleString('es-CL')} c/u`;
         const totalPriceText = `$${prop.totalPrice.toLocaleString('es-CL')}`;
 
-        const message = `Hola, quiero cotizar la siguiente propuesta del Planificador de Cobertura:
-
-Espacio a cubrir: ${prop.totalWidth.toFixed(1)} cm de ancho × ${prop.totalHeight.toFixed(1)} cm de alto.
-Total cristales: ${prop.unitCount}
-
-Detalle de termopaneles sugeridos:
-${itemsText}
-Precio unitario estimado: ${unitPriceText}
-Total estimado de la propuesta: ${totalPriceText}
-
-Quedo atento/a para confirmar stock y coordinar el retiro en El Monte. Gracias.`;
+        const message = `Hola, cotización Planificador (${prop.totalWidth.toFixed(1)}x${prop.totalHeight.toFixed(1)} cm):\n${itemsText}Total: ${prop.unitCount} paños - ${totalPriceText}`;
 
         const encodedText = encodeURIComponent(message);
         const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
@@ -2236,15 +2272,36 @@ Quedo atento/a para confirmar stock y coordinar el retiro en El Monte. Gracias.`
 };
 
 window.quoteCustomClosing = function(widthVal, heightVal) {
-    const message = `Hola, quiero cotizar un cierre a medida para un espacio de ${widthVal} cm de ancho por ${heightVal} cm de alto.`;
+    const message = `Hola, cotizar cierre de ${widthVal}x${heightVal} cm.`;
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
     window.open(whatsappUrl, '_blank');
 };
 
 window.quotePlannerFallback = function(targetW, targetH) {
-    const message = `Hola, no encontré stock en el Planificador para ${targetW} x ${targetH} cm. ¿Tienen otras alternativas similares?`;
+    const message = `Hola, sin stock en Planificador para ${targetW}x${targetH} cm. ¿Alternativas?`;
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
     window.open(whatsappUrl, '_blank');
+};
+
+window.scrollToSection = function(id, flashClass) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+        
+        // Remove class if it was already there (reset animation)
+        el.classList.remove('flash-element', 'flash-calc');
+        
+        // Force reflow
+        void el.offsetWidth;
+        
+        // Add animation class
+        el.classList.add(flashClass || 'flash-element');
+        
+        // Remove animation class after 4.5s (duration of 3 pulses)
+        setTimeout(() => {
+            el.classList.remove('flash-element', 'flash-calc');
+        }, 4500);
+    }
 };
