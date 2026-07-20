@@ -77,7 +77,7 @@ Vertical	     |  Capa cumplida	 |  Dónde está la evidencia
 Automatización |  Capa 1	       | src/flujo/n8n-workflow-termopaneles.json
 IA             |	Capa 1	       | /src/prompts/system.md 
 BBDD	         |  Capa 1       	 | Link a Google Sheets: (https://docs.google.com/spreadsheets/d/1XiVBqJeEwqdkMm3JSrA33OnbGS9N9mfvRjPg-U006no/edit?gid=324384237#gid=324384237) o /src/bbdd/URL-Sheets
-Front	         | Capa 1 	       | Link web: https://termopaneles-el-monte-termo-s-projects.vercel.app/ o src/ui/URL-Página-web
+Front	         | Capa 1 	       | Link web: https://termopaneles-el-monte.vercel.app/ o src/ui/URL-Página-web
 
 
 ## 6. Touchpoint del usuario

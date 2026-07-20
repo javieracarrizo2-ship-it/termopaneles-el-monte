@@ -506,65 +506,22 @@ DOM.productsGrid.appendChild(card);
 }
 
 // Direct purchase action on WhatsApp for a single product card
-window.buyProductDirectly = async function(productId) {
-const product = appState.products.find(p => p.id === productId);
-if (!product) return;
+window.buyProductDirectly = function(productId) {
+    const product = appState.products.find(p => p.id === productId);
+    if (!product) return;
 
-const qtyInput = document.getElementById(`qty-val-${productId}`);
-const qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
+    const qtyInput = document.getElementById(`qty-val-${productId}`);
+    const qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
 
-const email = prompt("Por favor, ingresa tu correo electrónico para recibir la cotización:");
-if (email === null) return;
-const cleanEmail = email.trim();
-if (!cleanEmail) {
-alert("Debes ingresar un correo electrónico.");
-return;
-}
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-if (!emailRegex.test(cleanEmail)) {
-alert("Por favor, ingresa un correo electrónico válido.");
-return;
-}
+    const message = `Hola, quiero cotizar un termopanel fijo de medida ${product.ancho_cm} x ${product.alto_cm} cm.
 
+Necesito cotizar ${qty} unidad(es).
 
-const btn = document.getElementById(`btn-quote-${productId}`);
-let originalHtml = '';
-if (btn) {
-originalHtml = btn.innerHTML;
-btn.innerHTML = 'Enviando...';
-btn.disabled = true;
-}
+Quedo atento/a al precio y disponibilidad actual. Gracias.`;
 
-try {
-const response = await fetch('https://horaciosm86.app.n8n.cloud/webhook/cotizar-termopanel', {
-method: 'POST',
-headers: {
-'Content-Type': 'application/json'
-},
-body: JSON.stringify({
-ancho_cm: product.ancho_cm,
-alto_cm: product.alto_cm,
-qty: qty,
-email: cleanEmail,
-origen: 'catalogo_individual'
-}),
-signal: AbortSignal.timeout(200000)
-});
-
-if (response.ok) {
-alert(`¡Cotización enviada con éxito! Revisa tu correo: ${cleanEmail}`);
-} else {
-alert("No pudimos procesar el envío de la cotización. Inténtalo de nuevo.");
-}
-} catch (error) {
-console.error('Error or timeout sending quote to webhook:', error);
-alert("Error de conexión al enviar la cotización. Revisa tu internet e inténtalo de nuevo.");
-} finally {
-if (btn) {
-btn.innerHTML = originalHtml;
-btn.disabled = false;
-}
-}
+    const encodedText = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
+    window.open(whatsappUrl, '_blank');
 };
 
 // Render Stats at bottom of filters
@@ -943,69 +900,35 @@ DOM.cartItemsList.appendChild(itemElement);
 }
 
 // Generate consolidated WhatsApp quote link
-async function checkoutCart() {
-if (appState.cart.length === 0) return;
+function checkoutCart() {
+    if (appState.cart.length === 0) return;
 
-const totalUnits = appState.cart.reduce((sum, item) => sum + item.qty, 0);
-const pricing = getCartPricing(totalUnits);
+    const totalUnits = appState.cart.reduce((sum, item) => sum + item.qty, 0);
+    const pricing = getCartPricing(totalUnits);
 
-const email = prompt("Por favor, ingresa tu correo electrónico para recibir la cotización de tu carro:");
-if (email === null) return;
-const cleanEmail = email.trim();
-if (!cleanEmail) {
-alert("Debes ingresar un correo electrónico.");
-return;
-}
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-if (!emailRegex.test(cleanEmail)) {
-alert("Por favor, ingresa un correo electrónico válido.");
-return;
-}
+    const itemsText = appState.cart.map(item => {
+        return `- ${item.ancho_cm} x ${item.alto_cm} cm: ${item.qty} ud(s)`;
+    }).join('\n');
 
-const btn = DOM.cartCheckoutBtn;
-let originalHtml = '';
-if (btn) {
-originalHtml = btn.innerHTML;
-btn.innerHTML = 'Enviando...';
-btn.disabled = true;
-}
+    const priceAppliedText = `$${pricing.unitPrice.toLocaleString('es-CL')} c/u`;
+    const totalCalc = totalUnits * pricing.unitPrice;
+    const totalCalcText = `$${totalCalc.toLocaleString('es-CL')}`;
 
-const totalCalc = totalUnits * pricing.unitPrice;
+    const message = `Hola, quiero cotizar los siguientes termopaneles:
 
-    try {
-        const response = await fetch('https://horaciosm86.app.n8n.cloud/webhook/cotizar-termopanel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                items: appState.cart,
-                totalUnits,
-                totalCalc,
-                email: cleanEmail,
-                origen: 'carrito'
-            }),
-            signal: AbortSignal.timeout(200000)
-        });
+${itemsText}
+Total unidades: ${totalUnits}
+Precio unitario aplicado: ${priceAppliedText}
+Total: ${totalCalcText}`;
 
-if (response.ok) {
-alert(`¡Cotización del carro enviada con éxito! Revisa tu correo: ${cleanEmail}`);
-appState.cart = [];
-saveCart();
-updateCartUI();
-openCart(false);
-} else {
-alert("No pudimos procesar la cotización de tu carro. Inténtalo de nuevo.");
-}
-} catch (error) {
-console.error('Error or timeout sending cart quote to webhook:', error);
-alert("Error de conexión al enviar la cotización. Revisa tu internet e inténtalo de nuevo.");
-} finally {
-if (btn) {
-btn.innerHTML = originalHtml;
-btn.disabled = false;
-}
-}
+    appState.cart = [];
+    saveCart();
+    updateCartUI();
+    openCart(false);
+
+    const encodedText = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
+    window.open(whatsappUrl, '_blank');
 }
 
 // Carousel initialization for Real Stock photos
@@ -2263,129 +2186,65 @@ console.error('Error al agregar propuesta al carro:', e);
 };
 
 // Cotizar propuesta en WhatsApp v2
-window.quoteProposalOnWhatsApp = async function(serializedProposal) {
-try {
-const prop = JSON.parse(decodeURIComponent(serializedProposal));
-
-const email = prompt("Por favor, ingresa tu correo electrónico para recibir la cotización de esta propuesta:");
-if (email === null) return;
-const cleanEmail = email.trim();
-if (!cleanEmail) {
-alert("Debes ingresar un correo electrónico.");
-return;
-}
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-if (!emailRegex.test(cleanEmail)) {
-alert("Por favor, ingresa un correo electrónico válido.");
-return;
-}
-
-    const itemsPayload = prop.panes.map(pane => ({
-        ancho_cm: pane.product.ancho_cm,
-        alto_cm: pane.product.alto_cm,
-        qty: 1
-    }));
-
-    const response = await fetch('https://horaciosm86.app.n8n.cloud/webhook/cotizar-termopanel', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            items: itemsPayload,
-            totalUnits: prop.unitCount,
-            totalCalc: prop.totalPrice,
-            email: cleanEmail,
-            origen: 'planificador_propuesta'
-        }),
-        signal: AbortSignal.timeout(200000)
-    });
-
-if (response.ok) {
-alert(`¡Cotización de la propuesta enviada con éxito! Revisa tu correo: ${cleanEmail}`);
-} else {
-alert("No pudimos procesar la cotización de la propuesta. Inténtalo de nuevo.");
-}
-} catch (e) {
-console.error('Error al cotizar propuesta por correo:', e);
-alert("Hubo un error de conexión al enviar la cotización. Revisa tu internet e inténtalo de nuevo.");
-}
-};
-
-window.quoteCustomClosing = async function(widthVal, heightVal) {
-const email = prompt("Por favor, ingresa tu correo electrónico para recibir la cotización personalizada:");
-if (email === null) return;
-const cleanEmail = email.trim();
-if (!cleanEmail) { 
-alert("Debes ingresar un correo electrónico."); 
-return; 
-}
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-if (!emailRegex.test(cleanEmail)) { 
-alert("Por favor, ingresa un correo electrónico válido."); 
-return; 
-}
-
+window.quoteProposalOnWhatsApp = function(serializedProposal) {
     try {
-        const response = await fetch('https://horaciosm86.app.n8n.cloud/webhook/cotizar-termopanel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                message: `Hola, quiero cotizar un cierre a medida para un espacio de ${widthVal} cm de ancho por ${heightVal} cm de alto.`,
-                email: cleanEmail,
-                origen: 'asistente_dimensiones_limite'
-            }),
-            signal: AbortSignal.timeout(200000)
+        const prop = JSON.parse(decodeURIComponent(serializedProposal));
+
+        const productCounts = {};
+        prop.panes.forEach(pane => {
+            const key = pane.product.id + (pane.rotated ? '_R' : '_N');
+            if (!productCounts[key]) {
+                productCounts[key] = {
+                    product: pane.product,
+                    width: pane.width,
+                    height: pane.height,
+                    rotated: pane.rotated,
+                    qty: 0
+                };
+            }
+            productCounts[key].qty++;
         });
 
-if (response.ok) {
-alert(`¡Solicitud enviada con éxito! Nos contactaremos contigo al correo: ${cleanEmail}`);
-} else {
-alert("No pudimos procesar tu solicitud. Inténtalo de nuevo.");
-}
-} catch (e) {
-console.error(e);
-alert("Error de conexión. Inténtalo de nuevo.");
-}
-};
-
-window.quotePlannerFallback = async function(targetW, targetH) {
-const email = prompt("Por favor, ingresa tu correo electrónico para recibir alternativas de stock:");
-if (email === null) return;
-const cleanEmail = email.trim();
-if (!cleanEmail) { 
-alert("Debes ingresar un correo electrónico."); 
-return; 
-}
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-if (!emailRegex.test(cleanEmail)) { 
-alert("Por favor, ingresa un correo electrónico válido."); 
-return; 
-}
-
-    try {
-        const response = await fetch('https://horaciosm86.app.n8n.cloud/webhook/cotizar-termopanel', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                message: `Hola, no encontré stock en el Planificador para ${targetW} x ${targetH} cm. ¿Tienen otras alternativas similares?`,
-                email: cleanEmail,
-                origen: 'planificador_sin_stock'
-            }),
-            signal: AbortSignal.timeout(200000)
+        let itemsText = '';
+        Object.values(productCounts).forEach(item => {
+            const rotText = item.rotated ? ' (Girado)' : '';
+            itemsText += `* ${item.qty} u × termopanel fijo de ${item.product.ancho_cm} x ${item.product.alto_cm} cm${rotText}\n`;
         });
 
-if (response.ok) {
-alert(`¡Solicitud enviada con éxito! Te enviaremos alternativas al correo: ${cleanEmail}`);
-} else {
-alert("No pudimos procesar tu solicitud. Inténtalo de nuevo.");
-}
-} catch (e) {
-console.error(e);
-alert("Error de conexión. Inténtalo de nuevo.");
-}
+        const pricing = getCartPricing(prop.unitCount);
+        const unitPriceText = `$${pricing.unitPrice.toLocaleString('es-CL')} c/u`;
+        const totalPriceText = `$${prop.totalPrice.toLocaleString('es-CL')}`;
+
+        const message = `Hola, quiero cotizar la siguiente propuesta del Planificador de Cobertura:
+
+Espacio a cubrir: ${prop.totalWidth.toFixed(1)} cm de ancho × ${prop.totalHeight.toFixed(1)} cm de alto.
+Total cristales: ${prop.unitCount}
+
+Detalle de termopaneles sugeridos:
+${itemsText}
+Precio unitario estimado: ${unitPriceText}
+Total estimado de la propuesta: ${totalPriceText}
+
+Quedo atento/a para confirmar stock y coordinar el retiro en El Monte. Gracias.`;
+
+        const encodedText = encodeURIComponent(message);
+        const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
+        window.open(whatsappUrl, '_blank');
+    } catch (e) {
+        console.error('Error al cotizar propuesta por WhatsApp:', e);
+    }
+};
+
+window.quoteCustomClosing = function(widthVal, heightVal) {
+    const message = `Hola, quiero cotizar un cierre a medida para un espacio de ${widthVal} cm de ancho por ${heightVal} cm de alto.`;
+    const encodedText = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
+    window.open(whatsappUrl, '_blank');
+};
+
+window.quotePlannerFallback = function(targetW, targetH) {
+    const message = `Hola, no encontré stock en el Planificador para ${targetW} x ${targetH} cm. ¿Tienen otras alternativas similares?`;
+    const encodedText = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
+    window.open(whatsappUrl, '_blank');
 };
