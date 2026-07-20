@@ -55,7 +55,7 @@
             "entries": [
               {
                 "name": "Access-Control-Allow-Origin",
-                "value": "https://termopaneles-el-monte.vercel.app"
+                "value": "https://termopaneles-el-monte-termo-s-projects.vercel.app"
               }
             ]
           }
