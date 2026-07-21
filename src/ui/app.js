@@ -61,8 +61,7 @@ setupEventListeners();
 initCart();
 initMobileMenu();
 initStockCarousel();
-initCalculator();
-initPlanner();
+initUnifiedSizing();
 await loadInventory();
 }
 
@@ -485,8 +484,8 @@ card.innerHTML = `
            
            <div class="product-actions">
                 <button onclick="buyProductDirectly('${product.id}')" class="cta-button" id="btn-quote-${product.id}" style="background-color: var(--color-olive); color: white;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24" style="margin-right: 8px;">
-                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.003 5.324 5.328 0 11.859 0c3.166.001 6.141 1.233 8.377 3.469 2.235 2.237 3.465 5.212 3.463 8.379-.004 6.536-5.328 11.86-11.859 11.86-2.004-.001-3.971-.51-5.713-1.482L0 24zm6.59-4.817c1.52.901 3.422 1.378 5.26 1.379 5.433.002 9.85-4.411 9.853-9.843.002-2.632-1.025-5.105-2.89-6.973A9.78 9.78 0 0 0 11.859 1.8c-5.435 0-9.853 4.413-9.856 9.847-.001 1.942.508 3.841 1.478 5.51l-.979 3.57 3.645-.956zm11.821-6.183c-.302-.151-1.788-.882-2.057-.981-.268-.099-.463-.147-.657.147-.195.294-.757.981-.928 1.178-.171.196-.341.221-.643.07-1.126-.567-1.894-.961-2.656-2.274-.2-.345.2-.321.572-1.066.061-.124.03-.232-.015-.332-.045-.099-.463-1.117-.635-1.529-.166-.399-.333-.344-.462-.35-.119-.006-.256-.008-.393-.008s-.36.051-.548.256c-.188.204-.717.701-.717 1.708 0 1.007.734 1.981.836 2.117.103.136 1.446 2.208 3.503 3.093.489.211.87.337 1.168.432.492.156.939.134 1.293.081.395-.06 1.788-.731 2.037-1.438.25-1.008.25-1.871.175-2.057-.074-.187-.269-.286-.572-.437z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 448 512" style="margin-right: 8px;">
+                        <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
                     </svg>
                     Cotizar por WhatsApp
                 </button>
@@ -1078,165 +1077,230 @@ updateIndicators();
 goToSlide(0);
 }
 
-// Initialize Calculator Logic for window frame (vano) comparison
-function initCalculator() {
-const wInput = document.getElementById('vano-width');
-const hInput = document.getElementById('vano-height');
-const calcBtn = document.getElementById('calc-btn');
-const resultsContainer = document.getElementById('calc-results');
+// ==========================================================================
+// Unified Sizing Tool Implementation ("Busca una medida o planifica un vano")
+// ==========================================================================
 
-if (!wInput || !hInput || !calcBtn || !resultsContainer) return;
+appState.sizingMode = 'individual'; // 'individual' or 'vano'
 
-calcBtn.addEventListener('click', () => {
-const widthVal = parseFloat(wInput.value);
-const heightVal = parseFloat(hInput.value);
+window.switchSizingMode = function(mode) {
+    appState.sizingMode = mode;
+    const cardInd = document.getElementById('mode-card-individual');
+    const cardVano = document.getElementById('mode-card-vano');
+    const contextText = document.getElementById('mode-context-text');
+    const advOpts = document.getElementById('sizing-advanced-options');
+    const searchBtn = document.getElementById('sizing-search-btn');
 
-if (isNaN(widthVal) || isNaN(heightVal) || widthVal <= 0 || heightVal <= 0) {
-alert('Por favor, ingresa un ancho y alto válidos en centímetros.');
-return;
-}
-
-if (appState.products.length === 0) {
-alert('Cargando el inventario, por favor intenta en un momento.');
-return;
-}
-
-calculateClosestMatches(widthVal, heightVal);
-});
-}
-
-function calculateClosestMatches(userWidth, userHeight) {
-const resultsContainer = document.getElementById('calc-results');
-if (!resultsContainer) return;
-
-// Calculate distance for each product (excluding 0 stock ones already filtered out)
-const scoredProducts = appState.products.map(p => {
-const wDiff = p.ancho_cm - userWidth;
-const hDiff = p.alto_cm - userHeight;
-const totalDist = Math.abs(wDiff) + Math.abs(hDiff);
-return {
-product: p,
-wDiff,
-hDiff,
-totalDist
+    if (mode === 'individual') {
+        if (cardInd) cardInd.classList.add('active');
+        if (cardVano) cardVano.classList.remove('active');
+        if (contextText) {
+            contextText.textContent = "Ingresa la medida que necesitas. Buscaremos primero si existe un termopanel individual igual o parecido en stock.";
+        }
+        if (advOpts) advOpts.style.display = 'none';
+        if (searchBtn) searchBtn.textContent = "Buscar Termopanel Individual";
+    } else {
+        if (cardInd) cardInd.classList.remove('active');
+        if (cardVano) cardVano.classList.add('active');
+        if (contextText) {
+            contextText.textContent = "Ingresa el tamaño total del espacio que quieres cubrir. La herramienta buscará alternativas usando uno o varios termopaneles disponibles.";
+        }
+        if (advOpts) advOpts.style.display = 'block';
+        if (searchBtn) searchBtn.textContent = "Planificar Vano Completo";
+    }
 };
-});
 
-// Filter to keep only matches with a difference of up to 15cm in BOTH dimensions
-const filteredMatches = scoredProducts.filter(match => {
-return Math.abs(match.wDiff) <= 15 && Math.abs(match.hDiff) <= 15;
-});
+function initUnifiedSizing() {
+    const wInput = document.getElementById('sizing-width');
+    const hInput = document.getElementById('sizing-height');
+    const searchBtn = document.getElementById('sizing-search-btn');
+    const resultsContainer = document.getElementById('sizing-results');
 
-// Sort by total distance ascending
-filteredMatches.sort((a, b) => a.totalDist - b.totalDist);
+    if (!wInput || !hInput || !searchBtn || !resultsContainer) return;
 
-// Take top 3
-const topMatches = filteredMatches.slice(0, 3);
+    searchBtn.addEventListener('click', () => {
+        const widthVal = parseFloat(wInput.value);
+        const heightVal = parseFloat(hInput.value);
 
-// Render
-resultsContainer.innerHTML = '';
+        if (isNaN(widthVal) || isNaN(heightVal) || widthVal <= 0 || heightVal <= 0) {
+            alert('Por favor, ingresa un ancho y alto válidos en centímetros.');
+            return;
+        }
 
-if (filteredMatches.length === 0) {
-resultsContainer.innerHTML = `
-           <div class="calc-no-results">
-               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-low-stock)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                   <circle cx="12" cy="12" r="10"></circle>
-                   <line x1="12" y1="8" x2="12" y2="12"></line>
-                   <line x1="12" y1="16" x2="12.01" y2="16"></line>
-               </svg>
-               <h3>Lo sentimos, no tenemos esa medida</h3>
-               <p>No disponemos de termopaneles en stock dentro del rango de diferencia de 15 cm de tu vano (${userWidth} x ${userHeight} cm).</p>
-               <div class="calc-no-results-actions">
-                    <a href="#catalog-section" class="calc-btn-secondary">Ver Catálogo Completo</a>
-                    <div class="calc-cross-ref-note">
-                        <span>💡 <strong>¿Tu espacio es muy grande?</strong> Intenta dividirlo en varios paños con nuestro <a onclick="scrollToSection('planner-section', 'flash-plan')">Planificador de Cobertura</a>.</span>
+        if (appState.products.length === 0) {
+            alert('Cargando el inventario, por favor intenta en un momento.');
+            return;
+        }
+
+        runUnifiedSearch(widthVal, heightVal);
+    });
+}
+
+function runUnifiedSearch(userWidth, userHeight) {
+    const resultsContainer = document.getElementById('sizing-results');
+    if (!resultsContainer) return;
+
+    resultsContainer.innerHTML = '';
+    const mode = appState.sizingMode || 'individual';
+
+    // Calculate distance for each product
+    const scoredProducts = appState.products.map(p => {
+        const wDiff = p.ancho_cm - userWidth;
+        const hDiff = p.alto_cm - userHeight;
+        const totalDist = Math.abs(wDiff) + Math.abs(hDiff);
+        return {
+            product: p,
+            wDiff,
+            hDiff,
+            totalDist,
+            isExact: (wDiff === 0 && hDiff === 0)
+        };
+    });
+
+    if (mode === 'individual') {
+        // MODO 1: Buscar pieza individual
+        const exactMatch = scoredProducts.find(m => m.isExact);
+
+        if (exactMatch) {
+            const header = document.createElement('div');
+            header.className = 'sizing-result-header-alert success';
+            header.innerHTML = `<span>✅ Encontramos una alternativa individual disponible.</span>`;
+            resultsContainer.appendChild(header);
+
+            renderSingleProductCard(exactMatch.product, exactMatch.wDiff, exactMatch.hDiff, resultsContainer);
+        } else {
+            // Check close matches within 15 cm
+            const filteredMatches = scoredProducts.filter(match => {
+                return Math.abs(match.wDiff) <= 15 && Math.abs(match.hDiff) <= 15;
+            });
+            filteredMatches.sort((a, b) => a.totalDist - b.totalDist);
+            const topMatches = filteredMatches.slice(0, 3);
+
+            if (topMatches.length > 0) {
+                const header = document.createElement('div');
+                header.className = 'sizing-result-header-alert info';
+                header.innerHTML = `<span>🔍 No encontramos una medida exacta, pero estas medidas cercanas podrían servirte.</span>`;
+                resultsContainer.appendChild(header);
+
+                topMatches.forEach(match => {
+                    renderSingleProductCard(match.product, match.wDiff, match.hDiff, resultsContainer);
+                });
+            } else {
+                resultsContainer.innerHTML = `
+                    <div class="calc-no-results">
+                        <h3>Lo sentimos, no tenemos esa medida exacta</h3>
+                        <p>No disponemos de un termopanel individual dentro de los 15 cm de tu vano (${userWidth} x ${userHeight} cm).</p>
+                        <div class="calc-no-results-actions" style="margin-top: 15px;">
+                            <button class="calc-btn" onclick="switchSizingMode('vano')">Probar opción Cubrir un Vano Completo</button>
+                            <a href="#catalog-section" class="calc-btn-secondary" style="margin-top: 10px; display: inline-block;">Ver Catálogo Completo</a>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    } else {
+        // MODO 2: Cubrir vano completo
+        if (userWidth > 600 || userHeight > 300) {
+            resultsContainer.innerHTML = `
+                <div class="planner-limit-exceeded">
+                    <h3>Medidas superan el límite del stock estándar</h3>
+                    <p>Para espacios mayores o proyectos con varios paños, solicita una cotización especial y revisamos alternativas.</p>
+                    <div class="planner-limit-exceeded-actions" style="margin-top: 15px;">
+                        <button onclick="quoteCustomClosing(${userWidth}, ${userHeight})" class="calc-btn">Cotizar por WhatsApp</button>
                     </div>
                 </div>
-           </div>
-       `;
-return;
+            `;
+            return;
+        }
+
+        // First check if there is a single pane exact/close match
+        const singleMatches = scoredProducts.filter(match => {
+            return Math.abs(match.wDiff) <= 5 && Math.abs(match.hDiff) <= 5;
+        }).sort((a, b) => a.totalDist - b.totalDist);
+
+        if (singleMatches.length > 0) {
+            const singleHeader = document.createElement('div');
+            singleHeader.className = 'sizing-result-header-alert success';
+            singleHeader.innerHTML = `<span>✨ Coincidencia de un solo paño en stock</span>`;
+            resultsContainer.appendChild(singleHeader);
+
+            renderSingleProductCard(singleMatches[0].product, singleMatches[0].wDiff, singleMatches[0].hDiff, resultsContainer);
+        }
+
+        // Read advanced parameters
+        const pInput = document.getElementById('planner-panes');
+        const dSelect = document.getElementById('planner-distribution');
+        const prSelect = document.getElementById('planner-priority');
+        const tSelect = document.getElementById('planner-tolerance');
+        const rSelect = document.getElementById('planner-rotation');
+
+        const panesVal = pInput ? pInput.value : 'all';
+        const distVal = dSelect ? dSelect.value : 'auto';
+        const priorityVal = prSelect ? prSelect.value : 'joints';
+        const toleranceVal = tSelect ? parseFloat(tSelect.value) : 5;
+        const rotationVal = rSelect ? rSelect.value : 'yes';
+
+        const alternatives = findCoverageCombinationsAdvanced(
+            userWidth, userHeight, panesVal, distVal, priorityVal, rotationVal, toleranceVal, appState.products
+        );
+
+        if (alternatives.length > 0) {
+            const comboHeader = document.createElement('div');
+            comboHeader.className = 'sizing-result-header-alert info';
+            comboHeader.style.marginTop = singleMatches.length > 0 ? '24px' : '0';
+            comboHeader.innerHTML = `<span>🧱 Alternativas de cobertura con combinaciones modulares</span>`;
+            resultsContainer.appendChild(comboHeader);
+
+            renderPlannerProposals(alternatives, userWidth, userHeight, resultsContainer);
+        } else if (singleMatches.length === 0) {
+            resultsContainer.innerHTML = `
+                <div class="calc-no-results">
+                    <h3>Sin combinaciones disponibles</h3>
+                    <p>No encontramos una combinación cercana para un vano de ${userWidth} x ${userHeight} cm en el inventario actual.</p>
+                    <div class="calc-no-results-actions" style="margin-top: 15px;">
+                        <button onclick="quotePlannerFallback(${userWidth}, ${userHeight})" class="calc-btn">Cotizar en WhatsApp</button>
+                    </div>
+                </div>
+            `;
+        }
+    }
 }
 
-topMatches.forEach(match => {
-const p = match.product;
-const card = document.createElement('div');
-card.className = 'calc-result-card';
+function renderSingleProductCard(product, wDiff, hDiff, container) {
+    const card = document.createElement('div');
+    card.className = 'calc-result-card';
+    card.style.marginBottom = '16px';
 
-// Helper to format diff tags
-const formatDiff = (diff, axis) => {
-const axisText = axis === 'w' ? 'ancho' : 'alto';
-if (diff === 0) {
-return `<span class="diff-tag exact">${axisText === 'ancho' ? 'Ancho exacto' : 'Alto exacto'}</span>`;
-} else if (diff > 0) {
-return `<span class="diff-tag plus">+${diff} cm (${axisText === 'ancho' ? 'más ancho' : 'más alto'})</span>`;
-} else {
-return `<span class="diff-tag minus">${diff} cm (${axisText === 'ancho' ? 'más angosto' : 'más bajo'})</span>`;
-}
-};
+    const formatDiff = (diff, axis) => {
+        const axisText = axis === 'w' ? 'ancho' : 'alto';
+        if (diff === 0) {
+            return `<span class="diff-tag exact">${axisText === 'ancho' ? 'Ancho exacto' : 'Alto exacto'}</span>`;
+        } else if (diff > 0) {
+            return `<span class="diff-tag plus">+${diff} cm (${axisText === 'ancho' ? 'más ancho' : 'más alto'})</span>`;
+        } else {
+            return `<span class="diff-tag minus">${diff} cm (${axisText === 'ancho' ? 'más angosto' : 'más bajo'})</span>`;
+        }
+    };
 
-const wTag = formatDiff(match.wDiff, 'w');
-const hTag = formatDiff(match.hDiff, 'h');
+    const wTag = formatDiff(wDiff, 'w');
+    const hTag = formatDiff(hDiff, 'h');
+    const unitPrice = getProductPrice(product);
 
-card.innerHTML = `
-           <div class="calc-result-header">
-               <h3 class="calc-result-title">${p.ancho_cm} x ${p.alto_cm} <span>cm</span></h3>
-               <span class="size-category-badge">${p.sizeCategory === 'chico' ? 'Chico' : (p.sizeCategory === 'mediano' ? 'Mediano' : 'Grande')}</span>
-           </div>
-           <div class="calc-diff-info">
-               ${wTag}
-               ${hTag}
-           </div>
-           <div class="calc-result-footer">
-               <span class="calc-stock-info">Stock: <strong>${p.unidades} u</strong></span>
-               <button class="calc-action-btn" onclick="buyProductDirectly('${p.id}')" style="background-color: var(--color-olive); color: white;">Cotizar</button>
-           </div>
-       `;
-resultsContainer.appendChild(card);
-});
-
-// If it's a large space, add a helper note to suggest the Planner
-if (userWidth > 130 || userHeight > 130) {
-    const note = document.createElement('div');
-    note.className = 'calc-cross-ref-note';
-    note.innerHTML = `<span>💡 <strong>¿Vano grande?</strong> Puedes cubrir este espacio combinando múltiples vidrios usando el <a onclick="scrollToSection('planner-section', 'flash-plan')">Planificador de Cobertura</a>.</span>`;
-    resultsContainer.appendChild(note);
-}
-}
-
-// ==========================================================================
-// Planificador de Cobertura Implementation
-// ===============================================// Initialize Coverage Planner tool v2
-function initPlanner() {
-const wInput = document.getElementById('planner-width');
-const hInput = document.getElementById('planner-height');
-const pInput = document.getElementById('planner-panes');
-const dSelect = document.getElementById('planner-distribution');
-const prSelect = document.getElementById('planner-priority');
-const tSelect = document.getElementById('planner-tolerance');
-const rSelect = document.getElementById('planner-rotation');
-const plannerBtn = document.getElementById('planner-btn');
-const resultsContainer = document.getElementById('planner-results');
-
-if (!wInput || !hInput || !pInput || !dSelect || !prSelect || !tSelect || !rSelect || !plannerBtn || !resultsContainer) return;
-
-// Collapse instructions on mobile by default
-const instructions = document.querySelector('.planner-instructions');
-if (instructions && window.innerWidth < 768) {
-instructions.removeAttribute('open');
-}
-
-plannerBtn.addEventListener('click', () => {
-const widthVal = parseFloat(wInput.value);
-const heightVal = parseFloat(hInput.value);
-const panesVal = pInput.value;
-const distVal = dSelect.value;
-const priorityVal = prSelect.value;
-const toleranceVal = parseFloat(tSelect.value);
-const rotationVal = rSelect.value;
-
-if (isNaN(widthVal) || isNaN(heightVal) || widthVal <= 0 || heightVal <= 0) {
-alert('Por favor, ingresa un ancho y alto válidos en centímetros.');
-return;
+    card.innerHTML = `
+        <div class="calc-result-header">
+            <h3 class="calc-result-title">${product.ancho_cm} x ${product.alto_cm} <span>cm</span></h3>
+            <span class="size-category-badge">${product.sizeCategory === 'chico' ? 'Chico' : (product.sizeCategory === 'mediano' ? 'Mediano' : 'Grande')}</span>
+        </div>
+        <div class="calc-diff-info">
+            ${wTag}
+            ${hTag}
+        </div>
+        <div class="calc-result-footer">
+            <span class="calc-stock-info">Stock: <strong>${product.unidades} u</strong> | ${formatCLP(unitPrice)}</span>
+            <button class="calc-action-btn" onclick="buyProductDirectly('${product.id}')" style="background-color: var(--color-olive); color: white;">Cotizar por WhatsApp</button>
+        </div>
+    `;
+    container.appendChild(card);
 }
 
 // Límite de la herramienta: Ancho máx: 600 cm, Alto máx: 300 cm
@@ -2286,20 +2350,19 @@ window.quotePlannerFallback = function(targetW, targetH) {
 };
 
 window.scrollToSection = function(id, flashClass) {
+    if (id === 'calculator-section' || id === 'mode-individual') {
+        if (window.switchSizingMode) window.switchSizingMode('individual');
+        id = 'unified-sizing-section';
+    } else if (id === 'planner-section' || id === 'mode-vano' || id === 'tutorial-section') {
+        if (window.switchSizingMode) window.switchSizingMode('vano');
+        id = 'unified-sizing-section';
+    }
     const el = document.getElementById(id);
     if (el) {
         el.scrollIntoView({ behavior: 'smooth' });
-        
-        // Remove class if it was already there (reset animation)
         el.classList.remove('flash-element', 'flash-calc');
-        
-        // Force reflow
         void el.offsetWidth;
-        
-        // Add animation class
         el.classList.add(flashClass || 'flash-element');
-        
-        // Remove animation class after 4.5s (duration of 3 pulses)
         setTimeout(() => {
             el.classList.remove('flash-element', 'flash-calc');
         }, 4500);
