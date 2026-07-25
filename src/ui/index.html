@@ -43,7 +43,6 @@
                 <a href="#hero-section" class="nav-link">Inicio</a>
                 <a href="#how-to-buy-section" class="nav-link">Cómo comprar</a>
                 <a href="#catalog-section" class="nav-link">Inventario</a>
-                <a href="#tutorial-section" class="nav-link">Tutorial</a>
                 <a href="#unified-sizing-section" class="nav-link">Calculadora</a>
                 <a href="#location-section" class="nav-link">Ubicación</a>
                 <a href="https://wa.me/56977445451" target="_blank" class="nav-link nav-contact">Contacto</a>
@@ -81,8 +80,8 @@
                     <a href="#catalog-section" class="cta-button primary-hero-btn">
                         Ver medidas disponibles
                     </a>
-                    <a href="#tutorial-section" class="cta-button secondary-hero-btn">
-                        Tutorial de Calculadora
+                    <a href="#unified-sizing-section" class="cta-button secondary-hero-btn">
+                        Calcular medida o espacio
                     </a>
                 </div>
             </div>
@@ -275,72 +274,8 @@
         </div>
     </section>
 
-    <!-- 3. Sizing & Calculator Tutorial Section -->
-    <section class="tutorial-section" id="tutorial-section">
-        <div class="tutorial-container">
-            <div class="section-header">
-                <span class="tutorial-tag">Ayuda y Guía de Uso</span>
-                <h2>¿Cómo usar la Calculadora y Planificador de Medidas?</h2>
-                <p>Sigue esta guía paso a paso para medir tu espacio y utilizar nuestra Herramienta Inteligente de cotización.</p>
-            </div>
-
-            <!-- Stepper Steps -->
-            <div class="tutorial-steps">
-                <div class="step-card">
-                    <div class="step-icon">1</div>
-                    <div class="step-content">
-                        <h3>Mide tu Vano o Espacio Libre</h3>
-                        <p>Toma la medida exacta del ancho y alto (en centímetros) del espacio donde colocarás los termopaneles.</p>
-                    </div>
-                </div>
-                <div class="step-card">
-                    <div class="step-icon">2</div>
-                    <div class="step-content">
-                        <h3>Elige la Opción que Necesitas</h3>
-                        <p>Selecciona la <strong>Opción 1</strong> para buscar un vidrio individual entero, o la <strong>Opción 2</strong> para cubrir un espacio más grande con varios paños.</p>
-                    </div>
-                </div>
-                <div class="step-card">
-                    <div class="step-icon">3</div>
-                    <div class="step-content">
-                        <h3>Calcula y Cotiza por WhatsApp</h3>
-                        <p>Haz clic en "Buscar Termopaneles", revisa las medidas recomendadas con sus diferencias en cm, agrégalas al carro y cotiza directo.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Interactive Paths (Options 1 vs 2) -->
-            <div class="tutorial-paths">
-                <div class="path-card path-a" onclick="scrollToSection('mode-individual', 'flash-calc')">
-                    <div class="path-header">
-                        <span class="path-badge">Un solo paño</span>
-                        <h3>Opción 1: Vidrio Único</h3>
-                    </div>
-                    <p>Ideal si necesitas reemplazar un ventanal o cubrir un vano con <strong>un único termopanel entero</strong> de nuestro stock.</p>
-                    <div class="path-tool-desc">
-                        <span class="tool-name">Calculadora de Pieza Única</span>
-                        <span class="tool-benefit">Busca en catálogo la medida individual más similar y detalla la diferencia en cm.</span>
-                    </div>
-                    <button class="path-btn">Usar Calculadora Individual →</button>
-                </div>
-
-                <div class="path-card path-b" onclick="scrollToSection('mode-vano', 'flash-plan')">
-                    <div class="path-header">
-                        <span class="path-badge">Estructura modular</span>
-                        <h3>Opción 2: Cubrir Vano Completo</h3>
-                    </div>
-                    <p>Ideal si tu espacio es amplio (terrazas, quinchos, bodegas) y quieres <strong>dividirlo en 2, 3 o más vidrios</strong>.</p>
-                    <div class="path-tool-desc">
-                        <span class="tool-name">Planificador de Cobertura</span>
-                        <span class="tool-benefit">Diseña combinaciones óptimas sumando y combinando piezas disponibles en stock.</span>
-                    </div>
-                    <button class="path-btn">Usar Planificador de Vano →</button>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- Hidden anchors for backward compatibility -->
+    <div id="tutorial-section"></div>
     <div id="calculator-section"></div>
     <div id="planner-section"></div>
 
@@ -349,26 +284,28 @@
         <div class="unified-sizing-container">
             <div class="section-header">
                 <span class="unified-tag">Herramienta Inteligente</span>
-                <h2>Busca una medida o planifica un vano</h2>
-                <p>Puedes buscar un termopanel individual por medida o planificar cómo cubrir un espacio usando una o varias piezas disponibles.</p>
+                <h2>Encuentra termopaneles para tu proyecto</h2>
+                <p>Busca una medida específica o descubre cómo cubrir tu espacio usando nuestro stock disponible.</p>
             </div>
 
             <!-- Mode Selector Cards/Tabs -->
             <div class="sizing-mode-selector">
                 <div class="mode-card active" id="mode-card-individual" onclick="switchSizingMode('individual')">
                     <div class="mode-header">
-                        <span class="mode-badge">Opción 1</span>
-                        <h3>Buscar una pieza individual</h3>
+                        <span class="mode-badge" id="mode-badge-individual">✓ Seleccionado</span>
+                        <h3>Buscar un termopanel</h3>
                     </div>
-                    <p>Para clientes que necesitan solo un termopanel de una medida específica.</p>
+                    <p>Si ya sabes la medida que necesitas.</p>
+                    <button class="mode-card-btn" id="btn-mode-individual" onclick="event.stopPropagation(); switchSizingMode('individual');">Buscar una medida</button>
                 </div>
 
                 <div class="mode-card" id="mode-card-vano" onclick="switchSizingMode('vano')">
                     <div class="mode-header">
-                        <span class="mode-badge">Opción 2</span>
-                        <h3>Cubrir un vano completo</h3>
+                        <span class="mode-badge" id="mode-badge-vano">Opción 2</span>
+                        <h3>Planificar mi proyecto</h3>
                     </div>
-                    <p>Para revisar alternativas usando una o varias piezas del inventario.</p>
+                    <p>Si quieres cubrir un espacio usando uno o varios termopaneles.</p>
+                    <button class="mode-card-btn" id="btn-mode-vano" onclick="event.stopPropagation(); switchSizingMode('vano');">Planificar mi espacio</button>
                 </div>
             </div>
 
@@ -376,28 +313,30 @@
             <div class="sizing-tool-box">
                 <!-- Mode Context Banner -->
                 <div class="mode-context-banner" id="mode-context-banner">
-                    <p id="mode-context-text">Ingresa la medida que necesitas. Buscaremos primero si existe un termopanel individual igual o parecido en stock.</p>
+                    <h4 id="mode-context-title" style="font-size: 1.05rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px;">Ingresa la medida exacta que necesitas</h4>
+                    <p id="mode-context-text" style="font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 4px;">Buscaremos si existe un termopanel individual igual o parecido en stock.</p>
+                    <p id="mode-context-help" style="font-size: 0.88rem; color: var(--color-olive); font-weight: 600; display: none; margin-top: 6px;">💡 Mide el ancho de izquierda a derecha y el alto de abajo hacia arriba.</p>
                 </div>
 
                 <div class="sizing-main-layout">
                     <!-- Left Column: Inputs -->
                     <div class="sizing-inputs-col">
                         <div class="calc-input-group">
-                            <label for="sizing-width" id="sizing-width-label">Ancho de tu medida / espacio (cm)</label>
-                            <input type="number" id="sizing-width" min="10" max="600" placeholder="Ej: 80" required>
+                            <label for="sizing-width" id="sizing-width-label">Ancho total del espacio (cm)</label>
+                            <input type="number" id="sizing-width" min="10" max="600" placeholder="Ej: 300" required>
                         </div>
 
                         <div class="calc-input-group">
-                            <label for="sizing-height" id="sizing-height-label">Alto de tu medida / espacio (cm)</label>
-                            <input type="number" id="sizing-height" min="10" max="300" placeholder="Ej: 120" required>
+                            <label for="sizing-height" id="sizing-height-label">Alto total del espacio (cm)</label>
+                            <input type="number" id="sizing-height" min="10" max="300" placeholder="Ej: 240" required>
                         </div>
 
                         <!-- Advanced Options Collapsible (shown in Vano mode) -->
                         <details class="sizing-advanced-options" id="sizing-advanced-options" style="display: none;">
-                            <summary>⚙️ Opciones avanzadas de distribución (Opcional)</summary>
+                            <summary>⚙️ Personalizar distribución (opcional)</summary>
                             <div class="advanced-options-grid">
                                 <div class="calc-input-group">
-                                    <label for="planner-panes">Máximo de paños aceptado</label>
+                                    <label for="planner-panes">Cantidad máxima de termopaneles</label>
                                     <select id="planner-panes">
                                         <option value="2">2 paños</option>
                                         <option value="3">3 paños</option>
@@ -418,7 +357,7 @@
                                     </select>
                                 </div>
                                 <div class="calc-input-group">
-                                    <label for="planner-priority">Prioridad de propuesta</label>
+                                    <label for="planner-priority">¿Qué quieres priorizar?</label>
                                     <select id="planner-priority">
                                         <option value="joints" selected>Menos uniones</option>
                                         <option value="coverage">Mejor cobertura</option>
@@ -427,7 +366,7 @@
                                     </select>
                                 </div>
                                 <div class="calc-input-group">
-                                    <label for="planner-tolerance">Tolerancia máxima</label>
+                                    <label for="planner-tolerance">Diferencia máxima permitida</label>
                                     <select id="planner-tolerance">
                                         <option value="2">2 cm</option>
                                         <option value="5" selected>5 cm</option>
@@ -436,7 +375,7 @@
                                     </select>
                                 </div>
                                 <div class="calc-input-group">
-                                    <label for="planner-rotation">Permitir girar vidrios</label>
+                                    <label for="planner-rotation">¿Se pueden girar los termopaneles?</label>
                                     <select id="planner-rotation">
                                         <option value="yes" selected>Permitir girar</option>
                                         <option value="no">No girar</option>
@@ -445,7 +384,7 @@
                             </div>
                         </details>
 
-                        <button class="calc-btn" id="sizing-search-btn">Buscar Termopaneles</button>
+                        <button class="calc-btn" id="sizing-search-btn">Buscar alternativas</button>
                     </div>
 
                     <!-- Right Column: Results -->
@@ -471,9 +410,6 @@
                     <p class="sizing-note">ℹ️ <strong>Nota:</strong> Las medidas y combinaciones son referenciales. La disponibilidad debe confirmarse por WhatsApp antes de retirar.</p>
                     <p class="sizing-note">🛠️ <strong>Instalación:</strong> La instalación, tipo de marco, resistencia y uso final deben ser revisados por una persona con experiencia en instalación de vidrios o termopaneles.</p>
                 </div>
-            </div>
-        </div>
-    </section>
             </div>
         </div>
     </section>

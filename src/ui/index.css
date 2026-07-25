@@ -3531,24 +3531,27 @@ footer {
 
 .mode-card {
     background-color: #ffffff;
-    border: 2px solid rgba(0, 0, 0, 0.06);
+    border: 2px solid rgba(0, 0, 0, 0.08);
     border-radius: 18px;
     padding: 24px;
     cursor: pointer;
     transition: var(--transition-smooth);
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .mode-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
-    border-color: rgba(85, 107, 47, 0.3);
+    border-color: rgba(85, 107, 47, 0.4);
 }
 
 .mode-card.active {
-    border-color: var(--color-olive);
-    background-color: #fcfdf9;
+    border: 2.5px solid var(--color-olive);
+    background-color: #f4f8f0;
     box-shadow: var(--shadow-md);
 }
 
@@ -3558,22 +3561,30 @@ footer {
     top: 0;
     left: 0;
     width: 100%;
-    height: 4px;
+    height: 5px;
     background: var(--color-olive);
 }
 
 .mode-badge {
     align-self: flex-start;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     text-transform: uppercase;
     font-weight: 700;
-    padding: 3px 10px;
+    padding: 4px 12px;
     border-radius: var(--border-radius-pill);
     letter-spacing: 0.5px;
-    background-color: #f1f6eb;
+    background-color: #eef3e8;
     color: var(--color-olive);
-    margin-bottom: 8px;
-    display: inline-block;
+    margin-bottom: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: var(--transition-smooth);
+}
+
+.mode-card.active .mode-badge {
+    background-color: var(--color-olive);
+    color: #ffffff;
 }
 
 .mode-header h3 {
@@ -3587,6 +3598,31 @@ footer {
     font-size: 0.9rem;
     color: var(--color-text-muted);
     line-height: 1.45;
+}
+
+.mode-card-btn {
+    margin-top: 18px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    align-self: flex-start;
+    border: 1.5px solid var(--color-olive);
+    background-color: #ffffff;
+    color: var(--color-olive);
+}
+
+.mode-card:hover .mode-card-btn {
+    background-color: rgba(85, 107, 47, 0.08);
+}
+
+.mode-card.active .mode-card-btn {
+    background-color: var(--color-olive);
+    color: #ffffff;
+    border-color: var(--color-olive);
+    box-shadow: 0 4px 10px rgba(85, 107, 47, 0.25);
 }
 
 .sizing-tool-box {

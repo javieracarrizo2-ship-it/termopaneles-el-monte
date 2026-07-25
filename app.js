@@ -1087,32 +1087,40 @@ window.switchSizingMode = function(mode) {
     appState.sizingMode = mode;
     const cardInd = document.getElementById('mode-card-individual');
     const cardVano = document.getElementById('mode-card-vano');
+    const badgeInd = document.getElementById('mode-badge-individual');
+    const badgeVano = document.getElementById('mode-badge-vano');
+    const contextTitle = document.getElementById('mode-context-title');
     const contextText = document.getElementById('mode-context-text');
+    const contextHelp = document.getElementById('mode-context-help');
     const advOpts = document.getElementById('sizing-advanced-options');
     const searchBtn = document.getElementById('sizing-search-btn');
 
     if (mode === 'individual') {
         if (cardInd) cardInd.classList.add('active');
         if (cardVano) cardVano.classList.remove('active');
-        if (contextText) {
-            contextText.textContent = "Ingresa la medida que necesitas. Buscaremos primero si existe un termopanel individual igual o parecido en stock.";
-        }
+        if (badgeInd) badgeInd.textContent = "✓ Seleccionado";
+        if (badgeVano) badgeVano.textContent = "Opción 2";
+        if (contextTitle) contextTitle.textContent = "Ingresa la medida exacta que necesitas";
+        if (contextText) contextText.textContent = "Buscaremos si existe un termopanel individual igual o parecido en stock.";
+        if (contextHelp) contextHelp.style.display = 'none';
         if (advOpts) {
             advOpts.style.display = 'none';
             advOpts.open = false;
         }
-        if (searchBtn) searchBtn.textContent = "Buscar Termopanel Individual";
+        if (searchBtn) searchBtn.textContent = "Buscar alternativas";
     } else {
         if (cardInd) cardInd.classList.remove('active');
         if (cardVano) cardVano.classList.add('active');
-        if (contextText) {
-            contextText.textContent = "Ingresa el tamaño total del espacio que quieres cubrir. La herramienta buscará alternativas usando uno o varios termopaneles disponibles.";
-        }
+        if (badgeInd) badgeInd.textContent = "Opción 1";
+        if (badgeVano) badgeVano.textContent = "✓ Seleccionado";
+        if (contextTitle) contextTitle.textContent = "Ingresa las medidas totales de tu espacio";
+        if (contextText) contextText.textContent = "Buscaremos alternativas usando los termopaneles disponibles.";
+        if (contextHelp) contextHelp.style.display = 'block';
         if (advOpts) {
             advOpts.style.display = 'block';
-            advOpts.open = true;
+            advOpts.open = false;
         }
-        if (searchBtn) searchBtn.textContent = "Planificar Vano Completo";
+        if (searchBtn) searchBtn.textContent = "Buscar alternativas";
     }
 };
 
@@ -1303,7 +1311,7 @@ function renderSingleProductCard(product, wDiff, hDiff, container) {
         </div>
         <div class="calc-result-footer">
             <span class="calc-stock-info">Stock: <strong>${product.unidades} u</strong> | ${formatCLP(unitPrice)}</span>
-            <button class="calc-action-btn" onclick="buyProductDirectly('${product.id}')" style="background-color: var(--color-olive); color: white;">Cotizar por WhatsApp</button>
+            <button class="calc-action-btn" onclick="buyProductDirectly('${product.id}')" style="background-color: var(--color-olive); color: white;">Consultar disponibilidad por WhatsApp</button>
         </div>
     `;
     container.appendChild(card);
@@ -2006,7 +2014,7 @@ card.innerHTML = `
                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                        <polyline points="22,6 12,13 2,6"></polyline>
                    </svg>
-                   Cotizar
+                   Consultar disponibilidad por WhatsApp
                </button>
            </div>
        `;
