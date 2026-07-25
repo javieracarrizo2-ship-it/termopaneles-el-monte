@@ -5,22 +5,67 @@
 
 // Configuration
 const CONFIG = {
-csvPath: 'inventario-termopaneles-landing.csv',
-    googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSeHty4SN7j5L3ypMmiOSSlGYGOnd_qkU8LTwRO1aC55yZXMzPxdIQJ4MRQ6auYdhxpoMuS1R9nj_Ft/pub?output=csv', // Pega aquí el enlace de Google Sheets publicado como CSV, // 
-whatsappNumber: '56977445451', // Chilean business WhatsApp number (+56 9 ...)
-lowStockThreshold: 5
+    csvPath: 'inventario-termopaneles-landing.csv',
+    googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSeHty4SN7j5L3ypMmiOSSlGYGOnd_qkU8LTwRO1aC55yZXMzPxdIQJ4MRQ6auYdhxpoMuS1R9nj_Ft/pub?output=csv',
+    googleAppScriptUrl: '', // URL del Web App de Google Apps Script para registrar cotizaciones en la hoja de registro
+    whatsappNumber: '56977445451', // Chilean business WhatsApp number (+56 9 ...)
+    lowStockThreshold: 5
 };
+
+// Helper: Formato de Fecha y Hora en zona horaria de Chile (es-CL, America/Santiago)
+function getChileDateTime() {
+    return new Date().toLocaleString('es-CL', {
+        timeZone: 'America/Santiago',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+// Function to register quote in Google Sheets via Google Apps Script Web App
+function recordQuoteToGoogleSheets(data) {
+    if (!CONFIG.googleAppScriptUrl) {
+        console.info('Registro en Google Sheets omitido (no se ha configurado googleAppScriptUrl en CONFIG).');
+        return;
+    }
+
+    try {
+        const payload = JSON.stringify({
+            fecha: data.fecha || getChileDateTime(),
+            medidas: data.medidas || '',
+            total: data.total || '',
+            vendido: 'Pendiente'
+        });
+
+        fetch(CONFIG.googleAppScriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8'
+            },
+            body: payload
+        }).catch(err => {
+            console.error('Error al registrar cotización en Google Sheets:', err);
+        });
+    } catch (e) {
+        console.error('Error al enviar cotización a Google Sheets:', e);
+    }
+}
 
 // Application State
 let appState = {
-products: [],
-filteredProducts: [],
-activeCategory: 'all',
-searchQuery: '',
-sortBy: 'dimensions-similar',
-cart: [],
-maxCatalogWidth: 120,
-maxCatalogHeight: 220
+    products: [],
+    filteredProducts: [],
+    activeCategory: 'all',
+    searchQuery: '',
+    sortBy: 'dimensions-similar',
+    cart: [],
+    maxCatalogWidth: 120,
+    maxCatalogHeight: 220,
+    visibleCatalogLimit: 12
 };
 
 // DOM Elements
@@ -279,110 +324,107 @@ if (allTab) allTab.querySelector('span').textContent = `(${counts.all})`;
 if (chicoTab) chicoTab.querySelector('span').textContent = `(${counts.chico})`;
 if (medianoTab) medianoTab.querySelector('span').textContent = `(${counts.mediano})`;
 if (grandeTab) grandeTab.querySelector('span').textContent = `(${counts.grande})`;
-}
-
-// Filter and Sort the product lists based on State
+}// Filter and Sort the product lists based on State
 function applyFiltersAndSort() {
-let list = [...appState.products];
+    appState.visibleCatalogLimit = 12; // Reset limit when filters change
+    let list = [...appState.products];
 
-// 1. Filter by category tab
-if (appState.activeCategory !== 'all') {
-list = list.filter(p => p.sizeCategory === appState.activeCategory);
-}
+    // 1. Filter by category tab
+    if (appState.activeCategory !== 'all') {
+        list = list.filter(p => p.sizeCategory === appState.activeCategory);
+    }
 
-// 2. Filter by search input (matching width, height, m, cm or general text)
-if (appState.searchQuery) {
-const query = appState.searchQuery;
-list = list.filter(p => {
-return p.medida_cm.toLowerCase().includes(query) ||
-p.medida_m.toLowerCase().includes(query) ||
-p.ancho_cm.toString().includes(query) ||
-p.alto_cm.toString().includes(query);
-});
-}
+    // 2. Filter by search input (matching width, height, m, cm or general text)
+    if (appState.searchQuery) {
+        const query = appState.searchQuery;
+        list = list.filter(p => {
+            return p.medida_cm.toLowerCase().includes(query) ||
+                p.medida_m.toLowerCase().includes(query) ||
+                p.ancho_cm.toString().includes(query) ||
+                p.alto_cm.toString().includes(query);
+        });
+    }
 
-// 3. Sort list
-list.sort((a, b) => {
-switch (appState.sortBy) {
-case 'dimensions-similar':
-const minA = Math.min(a.ancho_cm, a.alto_cm);
-const minB = Math.min(b.ancho_cm, b.alto_cm);
-if (Math.abs(minA - minB) > 0.001) {
-return minA - minB;
-}
-const maxA = Math.max(a.ancho_cm, a.alto_cm);
-const maxB = Math.max(b.ancho_cm, b.alto_cm);
-return maxA - maxB;
-case 'stock-desc':
-return b.unidades - a.unidades;
-case 'area-asc':
-return a.area - b.area;
-case 'area-desc':
-return b.area - a.area;
-default:
-const dMinA = Math.min(a.ancho_cm, a.alto_cm);
-const dMinB = Math.min(b.ancho_cm, b.alto_cm);
-if (Math.abs(dMinA - dMinB) > 0.001) {
-return dMinA - dMinB;
-}
-const dMaxA = Math.max(a.ancho_cm, a.alto_cm);
-const dMaxB = Math.max(b.ancho_cm, b.alto_cm);
-return dMaxA - dMaxB;
-}
-});
+    // 3. Sort list
+    list.sort((a, b) => {
+        switch (appState.sortBy) {
+            case 'dimensions-similar':
+                const minA = Math.min(a.ancho_cm, a.alto_cm);
+                const minB = Math.min(b.ancho_cm, b.alto_cm);
+                if (Math.abs(minA - minB) > 0.001) {
+                    return minA - minB;
+                }
+                const maxA = Math.max(a.ancho_cm, a.alto_cm);
+                const maxB = Math.max(b.ancho_cm, b.alto_cm);
+                return maxA - maxB;
+            case 'stock-desc':
+                return b.unidades - a.unidades;
+            case 'area-asc':
+                return a.area - b.area;
+            case 'area-desc':
+                return b.area - a.area;
+            default:
+                const dMinA = Math.min(a.ancho_cm, a.alto_cm);
+                const dMinB = Math.min(b.ancho_cm, b.alto_cm);
+                if (Math.abs(dMinA - dMinB) > 0.001) {
+                    return dMinA - dMinB;
+                }
+                const dMaxA = Math.max(a.ancho_cm, a.alto_cm);
+                const dMaxB = Math.max(b.ancho_cm, b.alto_cm);
+                return dMaxA - dMaxB;
+        }
+    });
 
-appState.filteredProducts = list;
-renderGrid();
-renderStats();
+    appState.filteredProducts = list;
+    renderGrid();
+    renderStats();
 }
 
 // Render Products inside Grid
 function renderGrid() {
-DOM.productsGrid.innerHTML = '';
+    DOM.productsGrid.innerHTML = '';
 
-if (appState.filteredProducts.length === 0) {
-renderNoResults();
-return;
-}
+    if (appState.filteredProducts.length === 0) {
+        renderNoResults();
+        return;
+    }
 
-appState.filteredProducts.forEach(product => {
-const card = document.createElement('div');
-card.className = 'product-card';
-card.id = `card-${product.id}`;
+    const limit = appState.visibleCatalogLimit || 12;
+    const productsToRender = appState.filteredProducts.slice(0, limit);
 
-// Define stock class and text
-const isLowStock = product.estado.toLowerCase() === 'bajo stock' || product.unidades <= CONFIG.lowStockThreshold;
-const statusClass = isLowStock ? 'low-stock' : 'available';
-const statusText = isLowStock ? 'Bajo stock' : 'Disponible';
+    productsToRender.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.id = `card-${product.id}`;
 
-// Sizing label translations
-const sizeLabelSpanish = {
-chico: 'Chico',
-mediano: 'Mediano',
-grande: 'Grande'
-}[product.sizeCategory];
+        // Define stock class and text
+        const isLowStock = product.estado.toLowerCase() === 'bajo stock' || product.unidades <= CONFIG.lowStockThreshold;
+        const statusClass = isLowStock ? 'low-stock' : 'available';
+        const statusText = isLowStock ? 'Bajo stock' : 'Disponible';
 
+        // Sizing label translations
+        const sizeLabelSpanish = {
+            chico: 'Chico',
+            mediano: 'Mediano',
+            grande: 'Grande'
+        }[product.sizeCategory];
 
-// Calculate relative scale percentages based on maximum dimensions
+        const maxWidth = appState.maxCatalogWidth || 140;
+        const maxHeight = appState.maxCatalogHeight || 240;
 
-// Calculate relative scale percentages based on maximum dimensions
-const maxWidth = appState.maxCatalogWidth || 140;
-const maxHeight = appState.maxCatalogHeight || 240;
+        const maxScalePercent = 88;
+        const minScalePercent = 25;
+        const widthPercent = Math.max(minScalePercent, (product.ancho_cm / maxWidth) * maxScalePercent);
+        const heightPercent = Math.max(minScalePercent, (product.alto_cm / maxHeight) * maxScalePercent);
 
-// Scale to fit nicely inside the container (max 88% width/height to avoid touching container borders)
-const maxScalePercent = 88;
-const minScalePercent = 25; // Keep very small windows visible and proportional
-const widthPercent = Math.max(minScalePercent, (product.ancho_cm / maxWidth) * maxScalePercent);
-const heightPercent = Math.max(minScalePercent, (product.alto_cm / maxHeight) * maxScalePercent);
+        const isTriangular = product.forma === 'triangular';
+        const isTrapezoidal = product.forma === 'trapezoidal';
+        const isSpecialShape = isTriangular || isTrapezoidal;
+        const glassRepClass = isSpecialShape ? 'glass-representation triangular-pane' : 'glass-representation';
 
-const isTriangular = product.forma === 'triangular';
-const isTrapezoidal = product.forma === 'trapezoidal';
-const isSpecialShape = isTriangular || isTrapezoidal;
-const glassRepClass = isSpecialShape ? 'glass-representation triangular-pane' : 'glass-representation';
-
-let glassContentHtml = '';
-if (isTriangular) {
-glassContentHtml = `
+        let glassContentHtml = '';
+        if (isTriangular) {
+            glassContentHtml = `
                <svg viewBox="0 0 100 100" class="glass-svg-triangle glass-pane-simulation" preserveAspectRatio="none" style="width: ${widthPercent}%; height: ${heightPercent}%;">
                    <defs>
                        <linearGradient id="glassGrad-${product.id}" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -399,8 +441,8 @@ glassContentHtml = `
                    <span class="shape-badge">Triangular</span>
                </div>
            `;
-} else if (isTrapezoidal) {
-glassContentHtml = `
+        } else if (isTrapezoidal) {
+            glassContentHtml = `
                <svg viewBox="0 0 100 100" class="glass-svg-triangle glass-pane-simulation" preserveAspectRatio="none" style="width: ${widthPercent}%; height: ${heightPercent}%;">
                    <defs>
                        <linearGradient id="glassGrad-${product.id}" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -417,28 +459,28 @@ glassContentHtml = `
                    <span class="shape-badge">Inclinado</span>
                </div>
            `;
-} else {
-glassContentHtml = `
+        } else {
+            glassContentHtml = `
                <div class="glass-pane-simulation" style="width: ${widthPercent}%; height: ${heightPercent}%;"></div>
                <div class="glass-icon-wrapper">
                    <span class="size-category-badge">${sizeLabelSpanish}</span>
                </div>
            `;
-}
+        }
 
-const shapeDetailHtml = isTriangular ? `
+        const shapeDetailHtml = isTriangular ? `
                <li>
                    <span class="detail-label">Diseño</span>
                    <span class="detail-value highlight-shape">Con forma (Triangular)</span>
                </li>
-       ` : (isTrapezoidal ? `
+        ` : (isTrapezoidal ? `
                <li>
                    <span class="detail-label">Diseño</span>
                    <span class="detail-value highlight-shape">Con forma (Inclinado / Trapecio)</span>
                </li>
-       ` : '');
+        ` : '');
 
-card.innerHTML = `
+        card.innerHTML = `
            <div class="${glassRepClass}" aria-hidden="true">
                ${glassContentHtml}
            </div>
@@ -499,7 +541,36 @@ card.innerHTML = `
            </div>
        `;
 
-DOM.productsGrid.appendChild(card);
+        DOM.productsGrid.appendChild(card);
+    });
+
+    // Render "Ver más medidas" button if there are remaining products
+    if (appState.filteredProducts.length > limit) {
+        const remaining = appState.filteredProducts.length - limit;
+        const loadMoreContainer = document.createElement('div');
+        loadMoreContainer.id = 'catalog-load-more-container';
+        loadMoreContainer.style.gridColumn = '1 / -1';
+        loadMoreContainer.style.textAlign = 'center';
+        loadMoreContainer.style.marginTop = '28px';
+        loadMoreContainer.style.marginBottom = '10px';
+
+        loadMoreContainer.innerHTML = `
+            <button id="load-more-catalog-btn" class="cta-button primary-hero-btn" style="padding: 14px 32px; font-size: 1rem; font-weight: 700; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: var(--shadow-md);">
+                Ver más medidas (${remaining} restantes)
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+        `;
+
+        DOM.productsGrid.appendChild(loadMoreContainer);
+
+        document.getElementById('load-more-catalog-btn').addEventListener('click', () => {
+            appState.visibleCatalogLimit = (appState.visibleCatalogLimit || 12) + 12;
+            renderGrid();
+        });
+    }
+}
 });
 }
 
@@ -531,18 +602,25 @@ window.buyProductDirectly = function(productId) {
 
     const unitPrice = getProductPrice(product);
     const totalCalc = qty * unitPrice;
+    const totalPriceText = `$${totalCalc.toLocaleString('es-CL')}`;
 
-    const message = `Hola, quiero cotizar este termopanel:
+    const codeOrDesc = product.id ? product.id : `${product.ancho_cm} × ${product.alto_cm} cm`;
+    const countText = qty === 1 ? '1 termopanel' : `${qty} termopaneles`;
+    const medidasSummary = `${product.ancho_cm} x ${product.alto_cm} cm (${qty} unidad${qty > 1 ? 'es' : ''})`;
 
-Termopanel fijo ${product.ancho_cm} x ${product.alto_cm} cm
-Cantidad: ${qty} unidad(es)
-Precio unitario: ${formatCLP(unitPrice)}
-Total estimado: ${formatCLP(totalCalc)}
+    // Registrar cotización en Google Sheets
+    recordQuoteToGoogleSheets({
+        fecha: getChileDateTime(),
+        medidas: medidasSummary,
+        total: totalPriceText,
+        vendido: 'Pendiente'
+    });
 
-Retiro: coordinado en El Monte, Región Metropolitana.
-
-Solo necesito confirmar disponibilidad actual.
-Gracias.`;
+    const message = `Hola, quiero cotizar ${countText} para mi proyecto.
+Medida del vidrio: ${product.ancho_cm} × ${product.alto_cm} cm.
+Alternativa seleccionada: ${codeOrDesc}.
+Total estimado: ${totalPriceText}.
+Quisiera confirmar disponibilidad y coordinar retiro en El Monte.`;
 
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
@@ -929,27 +1007,42 @@ function checkoutCart() {
     if (appState.cart.length === 0) return;
 
     let totalEstimado = 0;
-    const itemsText = appState.cart.map((item, index) => {
+    let totalUnidades = 0;
+
+    const medidasArray = [];
+    appState.cart.forEach(item => {
         const unitPrice = getProductPrice(item);
         const subtotal = item.qty * unitPrice;
         totalEstimado += subtotal;
+        totalUnidades += item.qty;
+        medidasArray.push(`${item.ancho_cm} x ${item.alto_cm} cm (${item.qty} unidad${item.qty > 1 ? 'es' : ''})`);
+    });
 
-        return `${index + 1}) Termopanel fijo ${item.ancho_cm} x ${item.alto_cm} cm
-Cantidad: ${item.qty}
-Precio unitario: ${formatCLP(unitPrice)}
-Subtotal: ${formatCLP(subtotal)}`;
+    const totalText = `$${totalEstimado.toLocaleString('es-CL')}`;
+    const medidasSummary = medidasArray.join(', ');
+
+    // Registrar cotización en Google Sheets (asíncrono, no bloqueante)
+    recordQuoteToGoogleSheets({
+        fecha: getChileDateTime(),
+        medidas: medidasSummary,
+        total: totalText,
+        vendido: 'Pendiente'
+    });
+
+    const itemsText = appState.cart.map((item, index) => {
+        const unitPrice = getProductPrice(item);
+        const subtotal = item.qty * unitPrice;
+        return `${index + 1}) Termopanel fijo ${item.ancho_cm} × ${item.alto_cm} cm
+Cantidad: ${item.qty} unidad(es)
+Subtotal: $${subtotal.toLocaleString('es-CL')}`;
     }).join('\n\n');
 
-    const message = `Hola, quiero cotizar los siguientes termopaneles:
+    const message = `Hola, quiero cotizar ${totalUnidades} termopaneles para mi proyecto:
 
 ${itemsText}
 
-Total estimado del carrito: ${formatCLP(totalEstimado)}
-
-Retiro: coordinado en El Monte, Región Metropolitana.
-
-Solo necesito confirmar disponibilidad actual.
-Gracias.`;
+Total estimado: ${totalText}.
+Quisiera confirmar disponibilidad y coordinar retiro en El Monte.`;
 
     appState.cart = [];
     saveCart();
@@ -1287,12 +1380,16 @@ function renderSingleProductCard(product, wDiff, hDiff, container) {
 
     const formatDiff = (diff, axis) => {
         const axisText = axis === 'w' ? 'ancho' : 'alto';
-        if (diff === 0) {
+        if (Math.abs(diff) < 0.01) {
             return `<span class="diff-tag exact">${axisText === 'ancho' ? 'Ancho exacto' : 'Alto exacto'}</span>`;
-        } else if (diff > 0) {
-            return `<span class="diff-tag plus">+${diff} cm (${axisText === 'ancho' ? 'más ancho' : 'más alto'})</span>`;
+        }
+        const absVal = Math.abs(diff);
+        const roundedVal = (Math.round(absVal * 10) / 10).toString().replace('.', ',');
+
+        if (diff > 0) {
+            return `<span class="diff-tag plus">${roundedVal} cm ${axisText === 'ancho' ? 'más ancho' : 'más alto'}</span>`;
         } else {
-            return `<span class="diff-tag minus">${diff} cm (${axisText === 'ancho' ? 'más angosto' : 'más bajo'})</span>`;
+            return `<span class="diff-tag minus">${roundedVal} cm ${axisText === 'ancho' ? 'más angosto' : 'más bajo'}</span>`;
         }
     };
 
@@ -1823,25 +1920,60 @@ panes: panesList
 return results;
 }
 
+window.applyFallbackSetting = function(setting, value) {
+    if (setting === 'tolerance') {
+        const tSelect = document.getElementById('planner-tolerance');
+        if (tSelect) tSelect.value = value;
+    } else if (setting === 'panes') {
+        const pSelect = document.getElementById('planner-panes');
+        if (pSelect) pSelect.value = value;
+    }
+    const advOpts = document.getElementById('sizing-advanced-options');
+    if (advOpts) {
+        advOpts.style.display = 'block';
+        advOpts.open = true;
+    }
+    const searchBtn = document.getElementById('sizing-search-btn');
+    if (searchBtn) searchBtn.click();
+};
+
 // Renderizar propuestas en UI
 function renderPlannerProposals(alternatives, targetW, targetH, container) {
-if (alternatives.length === 0) {
-container.innerHTML = `
-           <div class="calc-no-results">
-               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                   <circle cx="12" cy="12" r="10"></circle>
-                   <line x1="15" y1="9" x2="9" y2="15"></line>
-                   <line x1="9" y1="9" x2="15" y2="15"></line>
-               </svg>
-               <h3>Sin combinaciones disponibles</h3>
-               <p>No encontramos una combinación cercana con el stock actual. Puedes revisar medidas similares o solicitar una cotización.</p>
-               <div class="calc-no-results-actions">
-                   <button onclick="quotePlannerFallback(${targetW}, ${targetH})" class="calc-btn" style="background-color: var(--color-olive); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer;">Cotizar</button>
-               </div>
-           </div>
-       `;
-return;
-}
+    if (alternatives.length === 0) {
+        container.innerHTML = `
+            <div class="calc-no-results" style="text-align: left; padding: 24px; background: #fdfcf9; border: 1.5px solid #e2e8f0; border-radius: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <h3 style="font-size: 1.15rem; margin: 0; color: var(--color-text-primary);">No encontramos combinaciones para ${targetW} × ${targetH} cm</h3>
+                </div>
+                <p style="font-size: 0.92rem; color: var(--color-text-muted); margin-bottom: 18px; line-height: 1.5;">
+                    Te sugerimos probar estas opciones para encontrar alternativas en stock:
+                </p>
+                <div class="fallback-suggestions-grid" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                    <button onclick="applyFallbackSetting('tolerance', '10')" class="fallback-action-btn" style="text-align: left; padding: 12px 16px; border: 1.5px solid var(--color-olive); border-radius: 10px; background: #ffffff; color: var(--color-olive); font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+                        🔍 1. Aumentar la diferencia máxima permitida (a 10 cm o más)
+                    </button>
+                    <button onclick="applyFallbackSetting('panes', 'all')" class="fallback-action-btn" style="text-align: left; padding: 12px 16px; border: 1.5px solid var(--color-olive); border-radius: 10px; background: #ffffff; color: var(--color-olive); font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+                        🧩 2. Permitir más termopaneles por espacio
+                    </button>
+                    <button onclick="switchSizingMode('individual'); runUnifiedSearch(${targetW}, ${targetH});" class="fallback-action-btn" style="text-align: left; padding: 12px 16px; border: 1.5px solid var(--color-olive); border-radius: 10px; background: #ffffff; color: var(--color-olive); font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+                        📐 3. Probar medidas individuales cercanas en stock
+                    </button>
+                </div>
+                <div style="padding-top: 15px; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                    <span style="font-size: 0.88rem; color: var(--color-text-muted);">¿Prefieres que busquemos una alternativa manualmente?</span>
+                    <button onclick="quotePlannerFallback(${targetW}, ${targetH})" class="calc-btn" style="background-color: var(--color-olive); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                        Consultar por WhatsApp
+                    </button>
+                </div>
+            </div>
+        `;
+        return;
+    }
 
 container.innerHTML = '';
 
@@ -2277,28 +2409,56 @@ window.quoteProposalOnWhatsApp = function(serializedProposal) {
     try {
         const prop = JSON.parse(decodeURIComponent(serializedProposal));
 
+        const wInput = document.getElementById('sizing-width');
+        const hInput = document.getElementById('sizing-height');
+        const targetW = (wInput && wInput.value) ? wInput.value : (prop.totalWidth ? Math.round(prop.totalWidth) : '');
+        const targetH = (hInput && hInput.value) ? hInput.value : (prop.totalHeight ? Math.round(prop.totalHeight) : '');
+
         const productCounts = {};
         prop.panes.forEach(pane => {
-            const key = pane.product.id + (pane.rotated ? '_R' : '_N');
+            const p = pane.product;
+            const key = p.id || `${p.ancho_cm}x${p.alto_cm}`;
             if (!productCounts[key]) {
                 productCounts[key] = {
-                    product: pane.product,
-                    rotated: pane.rotated,
+                    product: p,
                     qty: 0
                 };
             }
             productCounts[key].qty++;
         });
 
-        let itemsText = '';
-        Object.values(productCounts).forEach(item => {
-            const rotText = item.rotated ? ' (Girado)' : '';
-            itemsText += `- ${item.qty} u: ${item.product.ancho_cm}x${item.product.alto_cm}cm${rotText}\n`;
-        });
+        const codeList = prop.panes.map(pane => pane.product.id ? pane.product.id : `${pane.product.ancho_cm}×${pane.product.alto_cm} cm`);
+        let formattedCodes = '';
+        if (codeList.length === 1) {
+            formattedCodes = codeList[0];
+        } else if (codeList.length === 2) {
+            formattedCodes = `${codeList[0]} y ${codeList[1]}`;
+        } else {
+            const lastCode = codeList[codeList.length - 1];
+            const leadingCodes = codeList.slice(0, codeList.length - 1).join(', ');
+            formattedCodes = `${leadingCodes} y ${lastCode}`;
+        }
+
+        const medidasSummary = Object.values(productCounts).map(item => 
+            `${item.product.ancho_cm} x ${item.product.alto_cm} cm (${item.qty} unidad${item.qty > 1 ? 'es' : ''})`
+        ).join(', ');
 
         const totalPriceText = `$${prop.totalPrice.toLocaleString('es-CL')}`;
+        const countText = prop.unitCount === 1 ? '1 termopanel' : `${prop.unitCount} termopaneles`;
 
-        const message = `Hola, cotización Planificador (${prop.totalWidth.toFixed(1)}x${prop.totalHeight.toFixed(1)} cm):\n${itemsText}Total: ${prop.unitCount} paños - ${totalPriceText}`;
+        // Registrar cotización en Google Sheets
+        recordQuoteToGoogleSheets({
+            fecha: getChileDateTime(),
+            medidas: medidasSummary,
+            total: totalPriceText,
+            vendido: 'Pendiente'
+        });
+
+        const message = `Hola, quiero cotizar ${countText} para mi proyecto.
+Medida total del espacio: ${targetW} × ${targetH} cm.
+Alternativa seleccionada: ${formattedCodes}.
+Total estimado: ${totalPriceText}.
+Quisiera confirmar disponibilidad y coordinar retiro en El Monte.`;
 
         const encodedText = encodeURIComponent(message);
         const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
@@ -2309,14 +2469,32 @@ window.quoteProposalOnWhatsApp = function(serializedProposal) {
 };
 
 window.quoteCustomClosing = function(widthVal, heightVal) {
-    const message = `Hola, cotizar cierre de ${widthVal}x${heightVal} cm.`;
+    const medidasSummary = `Espacio vano ${widthVal} x ${heightVal} cm (Cierre especial)`;
+    recordQuoteToGoogleSheets({
+        fecha: getChileDateTime(),
+        medidas: medidasSummary,
+        total: 'Por cotizar',
+        vendido: 'Pendiente'
+    });
+
+    const message = `Hola, quiero cotizar termopaneles para cubrir un espacio de ${widthVal} × ${heightVal} cm.
+Quisiera consultar alternativas disponibles y coordinar retiro en El Monte.`;
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
     window.open(whatsappUrl, '_blank');
 };
 
 window.quotePlannerFallback = function(targetW, targetH) {
-    const message = `Hola, sin stock en Planificador para ${targetW}x${targetH} cm. ¿Alternativas?`;
+    const medidasSummary = `Espacio vano ${targetW} x ${targetH} cm (Consulta manual)`;
+    recordQuoteToGoogleSheets({
+        fecha: getChileDateTime(),
+        medidas: medidasSummary,
+        total: 'Por cotizar',
+        vendido: 'Pendiente'
+    });
+
+    const message = `Hola, quiero cotizar opciones para cubrir un espacio de ${targetW} × ${targetH} cm.
+Quisiera consultar combinaciones o alternativas en stock y coordinar retiro en El Monte.`;
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
     window.open(whatsappUrl, '_blank');

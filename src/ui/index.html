@@ -41,10 +41,11 @@
             
             <nav class="nav-menu" id="nav-menu">
                 <a href="#hero-section" class="nav-link">Inicio</a>
-                <a href="#how-to-buy-section" class="nav-link">Cómo comprar</a>
-                <a href="#catalog-section" class="nav-link">Inventario</a>
                 <a href="#unified-sizing-section" class="nav-link">Calculadora</a>
+                <a href="#catalog-section" class="nav-link">Inventario</a>
+                <a href="#how-to-buy-section" class="nav-link">Cómo comprar</a>
                 <a href="#location-section" class="nav-link">Ubicación</a>
+                <a href="#faq-section" class="nav-link">Preguntas Frecuentes</a>
                 <a href="https://wa.me/56977445451" target="_blank" class="nav-link nav-contact">Contacto</a>
             </nav>
             
@@ -67,7 +68,7 @@
         </div>
     </header>
 
-    <!-- 2. Hero Section -->
+    <!-- 1. Hero Section (Portada) -->
     <section class="hero" id="hero-section">
         <div class="hero-grid-container">
             <div class="hero-content">
@@ -77,11 +78,11 @@
                 
                 <!-- Hero Action Buttons -->
                 <div class="hero-actions-container">
-                    <a href="#catalog-section" class="cta-button primary-hero-btn">
-                        Ver medidas disponibles
+                    <a href="#unified-sizing-section" class="cta-button primary-hero-btn">
+                        Buscar o planificar espacio
                     </a>
-                    <a href="#unified-sizing-section" class="cta-button secondary-hero-btn">
-                        Calcular medida o espacio
+                    <a href="#catalog-section" class="cta-button secondary-hero-btn">
+                        Ver inventario completo
                     </a>
                 </div>
             </div>
@@ -92,194 +93,12 @@
         </div>
     </section>
 
-    <!-- 3b. How to Buy Section -->
-    <section class="how-to-buy-section" id="how-to-buy-section">
-        <div class="how-to-buy-container">
-            <div class="section-header">
-                <span class="how-to-buy-tag">Proceso de Compra</span>
-                <h2>Cómo Comprar tus Termopaneles</h2>
-                <p>Comprar con nosotros es rápido, transparente y directo. Sigue estos sencillos pasos:</p>
-            </div>
-            
-            <div class="how-to-buy-grid">
-                <!-- Step 1 -->
-                <div class="how-to-buy-card">
-                    <div class="step-number">1</div>
-                    <h3>Elige tu medida</h3>
-                    <p>Revisa las opciones disponibles en el inventario.</p>
-                </div>
-                
-                <!-- Step 2 -->
-                <div class="how-to-buy-card">
-                    <div class="step-number">2</div>
-                    <h3>Arma tu cotización</h3>
-                    <p>Agrega al carro o cotiza una medida directamente.</p>
-                </div>
-                
-                <!-- Step 3 -->
-                <div class="how-to-buy-card">
-                    <div class="step-number">3</div>
-                    <h3>Confirma stock y pago</h3>
-                    <p>Confirmamos disponibilidad y valor final.</p>
-                </div>
-                
-                <!-- Step 4 -->
-                <div class="how-to-buy-card">
-                    <div class="step-number">4</div>
-                    <h3>Retiro coordinado</h3>
-                    <p>Agenda tu retiro en El Monte una vez confirmada la compra.</p>
-                </div>
-            </div>
-
-            <div style="text-align: center; margin-top: 30px; font-weight: 700; color: var(--color-text-primary); font-size: 1.1rem; background-color: var(--color-bg); padding: 15px; border-radius: 12px; border: 1px dashed rgba(85, 107, 47, 0.2);">
-                Aceptamos transferencia bancaria y efectivo.
-            </div>
-        </div>
-    </section>
-
-    <!-- 4. Inventory Catalog section -->
-    <main class="inventory-section" id="catalog-section">
-        <div class="section-header">
-            <h2>Inventario</h2>
-            <p>Revisa las dimensiones en stock. Filtra según tus necesidades y cotiza de forma directa.</p>
-        </div>
-
-        <!-- Wholesale Prices Box -->
-        <div class="wholesale-prices-box">
-            <div class="wholesale-title">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="1" x2="12" y2="23"></line>
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
-                <span>Valores por volumen (Cualquier medida)</span>
-            </div>
-            <div class="wholesale-grid">
-                <div class="wholesale-item">
-                    <span class="qty">Detalle (1 a 9 unidades)</span>
-                    <span class="price">$25.000 c/u</span>
-                </div>
-                <div class="wholesale-item">
-                    <span class="qty">Mayorista (Desde 10 unidades)</span>
-                    <span class="price">$20.000 c/u</span>
-                </div>
-                <div class="wholesale-item">
-                    <span class="qty">Súper Mayorista (Desde 40 unidades)</span>
-                    <span class="price">$15.000 c/u</span>
-                </div>
-            </div>
-            <div class="wholesale-notes">
-                <p class="note-item">
-                    <span class="note-icon">ℹ</span>
-                    <span><strong>¡Cualquier medida de nuestro inventario tiene el mismo precio!</strong> El valor unitario se calcula según el total de unidades en tu carro.</span>
-                </p>
-                <p class="note-item">
-                    <span class="note-icon">📍</span>
-                    <span>Coordinar stock y agendamiento al número +56 9 7744 5451.</span>
-                </p>
-            </div>
-        </div>
-
-        <!-- Filters Wrapper -->
-        <div class="controls-wrapper" id="filters-container">
-            <!-- Sizing Tabs -->
-            <div class="tabs-container" id="category-tabs" role="tablist" aria-label="Categorías de tamaño">
-                <button class="tab-btn active" data-category="all" role="tab" aria-selected="true" id="tab-all">
-                    Todos <span></span>
-                </button>
-                <button class="tab-btn" data-category="chico" role="tab" aria-selected="false" id="tab-chico">
-                    Chico <span>(<0.5 m²)</span>
-                </button>
-                <button class="tab-btn" data-category="mediano" role="tab" aria-selected="false" id="tab-mediano">
-                    Mediano <span>(0.5 - 1.2 m²)</span>
-                </button>
-                <button class="tab-btn" data-category="grande" role="tab" aria-selected="false" id="tab-grande">
-                    Grande <span>(>1.2 m²)</span>
-                </button>
-            </div>
-
-            <!-- Search and Sort inputs -->
-            <div class="search-sort-container">
-                <div class="search-input-wrapper">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    <input type="text" class="search-field" id="search-input" placeholder="Buscar por medida (Ej. 49 x 82, 59 cm, 1.2 m)..." aria-label="Buscar termopaneles">
-                </div>
-
-                <select class="sort-select" id="sort-select" aria-label="Ordenar resultados">
-                    <option value="dimensions-similar" selected>Por Medidas Similares</option>
-                    <option value="stock-desc">Mayor Stock Primero</option>
-                    <option value="area-asc">Menor a Mayor</option>
-                    <option value="area-desc">Mayor a Menor</option>
-                </select>
-            </div>
-
-            <!-- Active Filters stats -->
-            <div class="inventory-stats" id="inventory-stats">
-                <span id="results-count">Cargando inventario...</span>
-                <span id="active-filters-info"></span>
-            </div>
-        </div>
-
-        <!-- Inventory Grid -->
-        <div class="products-grid" id="products-grid" aria-live="polite">
-            <!-- Loading indicator -->
-            <div class="loader-wrapper" id="inventory-loader">
-                <div class="spinner"></div>
-                <p>Cargando catálogo de termopaneles...</p>
-            </div>
-        </div>
-    </main>
-
-    <!-- Real Stock Photo Gallery -->
-    <section class="stock-gallery-section" id="real-stock-gallery">
-        <div class="gallery-container">
-            <div class="gallery-content-box">
-                <span class="gallery-tag">FOTOS REALES</span>
-                <h2>Stock y referencias reales</h2>
-                <p>Fotos reales de nuestro stock disponible y de usos referenciales de termopaneles fijos.</p>
-            </div>
-            
-            <div class="gallery-carousel-wrapper">
-                <div class="carousel-container" id="stock-carousel">
-                    <div class="carousel-track" id="carousel-track">
-                        <div class="carousel-slide">
-                            <img src="termo.jpg" alt="Termopaneles listos para entrega en nuestra bodega de El Monte" class="carousel-img">
-                        </div>
-                        <div class="carousel-slide">
-                            <img src="termooo.jpg" alt="Inventario real de termopaneles en nuestra bodega de El Monte" class="carousel-img">
-                        </div>
-                        <div class="carousel-slide">
-                            <img src="tipo.jpg" alt="Uso referencial de termopanel instalado en estructura de madera" class="carousel-img">
-                        </div>
-                    </div>
-                    
-                    <!-- Navigation Arrows -->
-                    <button class="carousel-arrow prev" id="carousel-prev" aria-label="Anterior">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="15 18 9 12 15 6"></polyline>
-                        </svg>
-                    </button>
-                    <button class="carousel-arrow next" id="carousel-next" aria-label="Siguiente">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </button>
-                </div>
-                
-                <!-- Indicators (dots) -->
-                <div class="carousel-indicators" id="carousel-indicators"></div>
-            </div>
-        </div>
-    </section>
-
     <!-- Hidden anchors for backward compatibility -->
     <div id="tutorial-section"></div>
     <div id="calculator-section"></div>
     <div id="planner-section"></div>
 
-    <!-- 3. Unified Sizing & Coverage Tool Section -->
+    <!-- 2. Herramienta para buscar o planificar -->
     <section class="unified-sizing-section" id="unified-sizing-section">
         <div class="unified-sizing-container">
             <div class="section-header">
@@ -375,7 +194,7 @@
                                     </select>
                                 </div>
                                 <div class="calc-input-group">
-                                    <label for="planner-rotation">¿Se pueden girar los termopaneles?</label>
+                                    <label for="planner-rotation">Permitir girar los termopaneles</label>
                                     <select id="planner-rotation">
                                         <option value="yes" selected>Permitir girar</option>
                                         <option value="no">No girar</option>
@@ -414,58 +233,200 @@
         </div>
     </section>
 
-    <!-- Location Section (Map) -->
-    <section class="location-section" id="location-section">
-        <div class="location-container">
-            <div class="location-content">
-                <span class="location-tag">Ubicación y Retiros</span>
-                <h2>Nuestra Bodega de Retiro</h2>
-                <p>Nuestra bodega de El Monte está destinada exclusivamente para la entrega de pedidos confirmados previamente.</p>
-                
-                <div class="location-details">
-                    <div class="location-detail-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-olive);">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                        </svg>
-                        <div>
-                            <strong>Dirección:</strong>
-                            <span>Avenida Los Carrera 736 B, El Monte</span>
-                        </div>
-                    </div>
-                    <div class="location-detail-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-olive);">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        <div>
-                            <strong>Coordinación de retiro:</strong>
-                            <span>Los retiros en bodega se realizan exclusivamente con coordination y agendamiento previo tras enviar tu cotización por WhatsApp. No se realiza atención espontánea ni muestra de productos sin cita.</span>
-                        </div>
-                    </div>
-                    <div class="location-detail-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-olive);">
-                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                        </svg>
-                        <div>
-                            <strong>Contacto para Coordinar:</strong>
-                            <span>+56 9 7744 5451</span>
-                        </div>
-                    </div>
+    <!-- 3. Resultados del Inventario -->
+    <main class="inventory-section" id="catalog-section">
+        <div class="section-header">
+            <h2>Inventario</h2>
+            <p>Revisa las dimensiones en stock. Filtra según tus necesidades y cotiza de forma directa.</p>
+        </div>
+
+        <!-- Wholesale Prices Box -->
+        <div class="wholesale-prices-box">
+            <div class="wholesale-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <span>Valores por volumen (Cualquier medida)</span>
+            </div>
+            <div class="wholesale-grid">
+                <div class="wholesale-item">
+                    <span class="qty">Detalle (1 a 9 unidades)</span>
+                    <span class="price">$25.000 c/u</span>
                 </div>
-                
-                <a href="https://maps.google.com/?q=Avenida+Los+Carrera+736+B,+El+Monte" target="_blank" rel="noopener" class="cta-button map-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
-                        <line x1="9" y1="3" x2="9" y2="18"></line>
-                        <line x1="15" y1="6" x2="15" y2="21"></line>
+                <div class="wholesale-item">
+                    <span class="qty">Mayorista (Desde 10 unidades)</span>
+                    <span class="price">$20.000 c/u</span>
+                </div>
+                <div class="wholesale-item">
+                    <span class="qty">Súper Mayorista (Desde 40 unidades)</span>
+                    <span class="price">$15.000 c/u</span>
+                </div>
+            </div>
+            <div class="wholesale-notes">
+                <p class="note-item">
+                    <span class="note-icon">ℹ</span>
+                    <span><strong>¡Cualquier medida de nuestro inventario tiene el mismo precio!</strong> El valor unitario se calcula según el total de unidades en tu carro.</span>
+                </p>
+                <p class="note-item">
+                    <span class="note-icon">📍</span>
+                    <span>Coordinar stock y agendamiento al número +56 9 7744 5451.</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Filters Wrapper -->
+        <div class="controls-wrapper" id="filters-container">
+            <!-- Sizing Tabs -->
+            <div class="tabs-container" id="category-tabs" role="tablist" aria-label="Categorías de tamaño">
+                <button class="tab-btn active" data-category="all" role="tab" aria-selected="true" id="tab-all">
+                    Todos <span></span>
+                </button>
+                <button class="tab-btn" data-category="chico" role="tab" aria-selected="false" id="tab-chico">
+                    Chico <span>(<0.5 m²)</span>
+                </button>
+                <button class="tab-btn" data-category="mediano" role="tab" aria-selected="false" id="tab-mediano">
+                    Mediano <span>(0.5 - 1.2 m²)</span>
+                </button>
+                <button class="tab-btn" data-category="grande" role="tab" aria-selected="false" id="tab-grande">
+                    Grande <span>(>1.2 m²)</span>
+                </button>
+            </div>
+
+            <!-- Search and Sort inputs -->
+            <div class="search-sort-container">
+                <div class="search-input-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                    Cómo llegar
-                </a>
+                    <input type="text" class="search-field" id="search-input" placeholder="Buscar por medida (Ej. 49 x 82, 59 cm, 1.2 m)..." aria-label="Buscar termopaneles">
+                </div>
+
+                <select class="sort-select" id="sort-select" aria-label="Ordenar resultados">
+                    <option value="dimensions-similar" selected>Por Medidas Similares</option>
+                    <option value="stock-desc">Mayor Stock Primero</option>
+                    <option value="area-asc">Menor a Mayor</option>
+                    <option value="area-desc">Mayor a Menor</option>
+                </select>
+            </div>
+
+            <!-- Active Filters stats -->
+            <div class="inventory-stats" id="inventory-stats">
+                <span id="results-count">Cargando inventario...</span>
+                <span id="active-filters-info"></span>
+            </div>
+        </div>
+
+        <!-- Inventory Grid -->
+        <div class="products-grid" id="products-grid" aria-live="polite">
+            <!-- Loading indicator -->
+            <div class="loader-wrapper" id="inventory-loader">
+                <div class="spinner"></div>
+                <p>Cargando catálogo de termopaneles...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- 4. Fotografías Reales -->
+    <section class="stock-gallery-section" id="real-stock-gallery">
+        <div class="gallery-container">
+            <div class="gallery-content-box">
+                <span class="gallery-tag">FOTOS REALES</span>
+                <h2>Stock y referencias reales</h2>
+                <p>Fotos reales de nuestro stock disponible y de usos referenciales de termopaneles fijos.</p>
             </div>
             
-            <div class="map-wrapper">
+            <div class="gallery-carousel-wrapper">
+                <div class="carousel-container" id="stock-carousel">
+                    <div class="carousel-track" id="carousel-track">
+                        <div class="carousel-slide">
+                            <img src="termo.jpg" alt="Termopaneles listos para entrega en nuestra bodega de El Monte" class="carousel-img">
+                        </div>
+                        <div class="carousel-slide">
+                            <img src="termooo.jpg" alt="Inventario real de termopaneles en nuestra bodega de El Monte" class="carousel-img">
+                        </div>
+                        <div class="carousel-slide">
+                            <img src="tipo.jpg" alt="Uso referencial de termopanel instalado en estructura de madera" class="carousel-img">
+                        </div>
+                    </div>
+                    
+                    <!-- Navigation Arrows -->
+                    <button class="carousel-arrow prev" id="carousel-prev" aria-label="Anterior">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <button class="carousel-arrow next" id="carousel-next" aria-label="Siguiente">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Indicators (dots) -->
+                <div class="carousel-indicators" id="carousel-indicators"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. Cómo comprar -->
+    <section class="how-to-buy-section" id="how-to-buy-section">
+        <div class="how-to-buy-container">
+            <div class="section-header">
+                <span class="how-to-buy-tag">Proceso de Compra</span>
+                <h2>Cómo Comprar tus Termopaneles</h2>
+                <p>Comprar con nosotros es rápido, transparente y directo. Sigue estos sencillos pasos:</p>
+            </div>
+            
+            <div class="how-to-buy-grid">
+                <!-- Step 1 -->
+                <div class="how-to-buy-card">
+                    <div class="step-number">1</div>
+                    <h3>Elige tu medida</h3>
+                    <p>Revisa las opciones disponibles en el inventario.</p>
+                </div>
+                
+                <!-- Step 2 -->
+                <div class="how-to-buy-card">
+                    <div class="step-number">2</div>
+                    <h3>Arma tu cotización</h3>
+                    <p>Agrega al carro o cotiza una medida directamente.</p>
+                </div>
+                
+                <!-- Step 3 -->
+                <div class="how-to-buy-card">
+                    <div class="step-number">3</div>
+                    <h3>Confirma stock y pago</h3>
+                    <p>Confirmamos disponibilidad y valor final.</p>
+                </div>
+                
+                <!-- Step 4 -->
+                <div class="how-to-buy-card">
+                    <div class="step-number">4</div>
+                    <h3>Retiro coordinado</h3>
+                    <p>Agenda tu retiro en El Monte una vez confirmada la compra.</p>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px; font-weight: 700; color: var(--color-text-primary); font-size: 1.1rem; background-color: var(--color-bg); padding: 15px; border-radius: 12px; border: 1px dashed rgba(85, 107, 47, 0.2);">
+                Aceptamos transferencia bancaria y efectivo.
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. Ubicación -->
+    <section class="location-section" id="location-section">
+        <div class="location-container">
+            <div class="section-header">
+                <span class="location-tag">Retiro en Bodega</span>
+                <h2>Ubicación y Retiro</h2>
+                <p>Retiro exclusivo coordinado en nuestra bodega de El Monte. Agenda tu horario antes de asistir.</p>
+            </div>
+            
+            <div class="map-wrapper" id="map-container">
                 <iframe 
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3322.3853177726593!2d-70.99986348821035!3d-33.68602690947702!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662f63f35f29911%3A0xe108398ff0f8fe6b!2sAv.+Los+Carrera+736%2C+El+Monte%2C+Regi%C3%B3n+Metropolitana!5e0!3m2!1ses!2scl!4v1717900000000!5m2!1ses!2scl" 
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3320.697669480112!2d-70.98569852358897!3d-33.66497357330541!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x966324b179326f59%3A0xb35a6435b80ee327!2sAv.%20los%20Carrera%20736b%2C%20El%20Monte%2C%20Regi%C3%B3n%20Metropolitana!5e0!3m2!1ses!2scl!4v1700000000000!5m2!1ses!2scl" 
                     width="100%" 
                     height="450" 
                     style="border:0;" 
@@ -478,10 +439,11 @@
         </div>
     </section>
 
-    <!-- 5. FAQ Section -->
+    <!-- 7. Preguntas Frecuentes -->
     <section class="faq-section" id="faq-section">
         <div class="faq-container">
             <div class="section-header">
+                <span class="faq-tag">Preguntas Frecuentes</span>
                 <h2>Preguntas Frecuentes</h2>
                 <p>Respuestas rápidas para ayudarte con tu compra de termopaneles.</p>
             </div>
@@ -489,7 +451,7 @@
             <div class="faq-grid" id="faq-grid-items">
                 <div class="faq-item" id="faq-frames">
                     <h3>¿Incluyen marco?</h3>
-                    <p>No. Se vende solo el termopanel sellado, sin perfiles ni marcos.</p>
+                    <p>No. Se vende solo el termopanel sellado (vidrio doble aislante), sin perfiles ni marcos.</p>
                 </div>
 
                 <div class="faq-item" id="faq-installation">
@@ -509,13 +471,13 @@
 
                 <div class="faq-item" id="faq-whatsapp">
                     <h3>¿Cómo es el proceso de compra y cotización?</h3>
-                    <p>Elige las medidas de tu interés en el catálogo de arriba, añádelas al carro y haz clic en "Cotizar por WhatsApp". Confirmaremos el valor y stock, y coordinaremos un día y hora específicos para tu retiro en bodega. No atendemos visitas sin agendamiento previo.</p>
+                    <p>Elige las medidas de tu interés en el catálogo de arriba, añádelas al carro y haz clic en "Consultar disponibilidad por WhatsApp". Confirmaremos el valor y stock, y coordinaremos un día y hora específicos para tu retiro en bodega. No atendemos visitas sin agendamiento previo.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- 6. Footer -->
+    <!-- Footer -->
     <footer>
         <div class="footer-container">
             <div class="footer-brand" id="footer-brand-info">
@@ -602,7 +564,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 448 512" style="margin-right: 8px;">
                         <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
                     </svg>
-                    Cotizar por WhatsApp
+                    Consultar disponibilidad por WhatsApp
                 </button>
             </div>
         </div>

@@ -1,26 +1,71 @@
 /**
-* App.js - Catalog controller for Termopaneles Fijos
-* Fetches, parses, filters, sorts and displays products from CSV
-*/
+ * App.js - Catalog controller for Termopaneles Fijos
+ * Fetches, parses, filters, sorts and displays products from CSV
+ */
 
 // Configuration
 const CONFIG = {
-csvPath: 'inventario-termopaneles-landing.csv',
-    googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSeHty4SN7j5L3ypMmiOSSlGYGOnd_qkU8LTwRO1aC55yZXMzPxdIQJ4MRQ6auYdhxpoMuS1R9nj_Ft/pub?output=csv', // Pega aquí el enlace de Google Sheets publicado como CSV, // 
-whatsappNumber: '56977445451', // Chilean business WhatsApp number (+56 9 ...)
-lowStockThreshold: 5
+    csvPath: 'inventario-termopaneles-landing.csv',
+    googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSeHty4SN7j5L3ypMmiOSSlGYGOnd_qkU8LTwRO1aC55yZXMzPxdIQJ4MRQ6auYdhxpoMuS1R9nj_Ft/pub?output=csv',
+    googleAppScriptUrl: '', // URL del Web App de Google Apps Script para registrar cotizaciones en la hoja de registro
+    whatsappNumber: '56977445451', // Chilean business WhatsApp number (+56 9 ...)
+    lowStockThreshold: 5
 };
+
+// Helper: Formato de Fecha y Hora en zona horaria de Chile (es-CL, America/Santiago)
+function getChileDateTime() {
+    return new Date().toLocaleString('es-CL', {
+        timeZone: 'America/Santiago',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+// Function to register quote in Google Sheets via Google Apps Script Web App
+function recordQuoteToGoogleSheets(data) {
+    if (!CONFIG.googleAppScriptUrl) {
+        console.info('Registro en Google Sheets omitido (no se ha configurado googleAppScriptUrl en CONFIG).');
+        return;
+    }
+
+    try {
+        const payload = JSON.stringify({
+            fecha: data.fecha || getChileDateTime(),
+            medidas: data.medidas || '',
+            total: data.total || '',
+            vendido: 'Pendiente'
+        });
+
+        fetch(CONFIG.googleAppScriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8'
+            },
+            body: payload
+        }).catch(err => {
+            console.error('Error al registrar cotización en Google Sheets:', err);
+        });
+    } catch (e) {
+        console.error('Error al enviar cotización a Google Sheets:', e);
+    }
+}
 
 // Application State
 let appState = {
-products: [],
-filteredProducts: [],
-activeCategory: 'all',
-searchQuery: '',
-sortBy: 'dimensions-similar',
-cart: [],
-maxCatalogWidth: 120,
-maxCatalogHeight: 220
+    products: [],
+    filteredProducts: [],
+    activeCategory: 'all',
+    searchQuery: '',
+    sortBy: 'dimensions-similar',
+    cart: [],
+    maxCatalogWidth: 120,
+    maxCatalogHeight: 220,
+    visibleCatalogLimit: 12
 };
 
 // DOM Elements
@@ -279,110 +324,107 @@ if (allTab) allTab.querySelector('span').textContent = `(${counts.all})`;
 if (chicoTab) chicoTab.querySelector('span').textContent = `(${counts.chico})`;
 if (medianoTab) medianoTab.querySelector('span').textContent = `(${counts.mediano})`;
 if (grandeTab) grandeTab.querySelector('span').textContent = `(${counts.grande})`;
-}
-
-// Filter and Sort the product lists based on State
+}// Filter and Sort the product lists based on State
 function applyFiltersAndSort() {
-let list = [...appState.products];
+    appState.visibleCatalogLimit = 12; // Reset limit when filters change
+    let list = [...appState.products];
 
-// 1. Filter by category tab
-if (appState.activeCategory !== 'all') {
-list = list.filter(p => p.sizeCategory === appState.activeCategory);
-}
+    // 1. Filter by category tab
+    if (appState.activeCategory !== 'all') {
+        list = list.filter(p => p.sizeCategory === appState.activeCategory);
+    }
 
-// 2. Filter by search input (matching width, height, m, cm or general text)
-if (appState.searchQuery) {
-const query = appState.searchQuery;
-list = list.filter(p => {
-return p.medida_cm.toLowerCase().includes(query) ||
-p.medida_m.toLowerCase().includes(query) ||
-p.ancho_cm.toString().includes(query) ||
-p.alto_cm.toString().includes(query);
-});
-}
+    // 2. Filter by search input (matching width, height, m, cm or general text)
+    if (appState.searchQuery) {
+        const query = appState.searchQuery;
+        list = list.filter(p => {
+            return p.medida_cm.toLowerCase().includes(query) ||
+                p.medida_m.toLowerCase().includes(query) ||
+                p.ancho_cm.toString().includes(query) ||
+                p.alto_cm.toString().includes(query);
+        });
+    }
 
-// 3. Sort list
-list.sort((a, b) => {
-switch (appState.sortBy) {
-case 'dimensions-similar':
-const minA = Math.min(a.ancho_cm, a.alto_cm);
-const minB = Math.min(b.ancho_cm, b.alto_cm);
-if (Math.abs(minA - minB) > 0.001) {
-return minA - minB;
-}
-const maxA = Math.max(a.ancho_cm, a.alto_cm);
-const maxB = Math.max(b.ancho_cm, b.alto_cm);
-return maxA - maxB;
-case 'stock-desc':
-return b.unidades - a.unidades;
-case 'area-asc':
-return a.area - b.area;
-case 'area-desc':
-return b.area - a.area;
-default:
-const dMinA = Math.min(a.ancho_cm, a.alto_cm);
-const dMinB = Math.min(b.ancho_cm, b.alto_cm);
-if (Math.abs(dMinA - dMinB) > 0.001) {
-return dMinA - dMinB;
-}
-const dMaxA = Math.max(a.ancho_cm, a.alto_cm);
-const dMaxB = Math.max(b.ancho_cm, b.alto_cm);
-return dMaxA - dMaxB;
-}
-});
+    // 3. Sort list
+    list.sort((a, b) => {
+        switch (appState.sortBy) {
+            case 'dimensions-similar':
+                const minA = Math.min(a.ancho_cm, a.alto_cm);
+                const minB = Math.min(b.ancho_cm, b.alto_cm);
+                if (Math.abs(minA - minB) > 0.001) {
+                    return minA - minB;
+                }
+                const maxA = Math.max(a.ancho_cm, a.alto_cm);
+                const maxB = Math.max(b.ancho_cm, b.alto_cm);
+                return maxA - maxB;
+            case 'stock-desc':
+                return b.unidades - a.unidades;
+            case 'area-asc':
+                return a.area - b.area;
+            case 'area-desc':
+                return b.area - a.area;
+            default:
+                const dMinA = Math.min(a.ancho_cm, a.alto_cm);
+                const dMinB = Math.min(b.ancho_cm, b.alto_cm);
+                if (Math.abs(dMinA - dMinB) > 0.001) {
+                    return dMinA - dMinB;
+                }
+                const dMaxA = Math.max(a.ancho_cm, a.alto_cm);
+                const dMaxB = Math.max(b.ancho_cm, b.alto_cm);
+                return dMaxA - dMaxB;
+        }
+    });
 
-appState.filteredProducts = list;
-renderGrid();
-renderStats();
+    appState.filteredProducts = list;
+    renderGrid();
+    renderStats();
 }
 
 // Render Products inside Grid
 function renderGrid() {
-DOM.productsGrid.innerHTML = '';
+    DOM.productsGrid.innerHTML = '';
 
-if (appState.filteredProducts.length === 0) {
-renderNoResults();
-return;
-}
+    if (appState.filteredProducts.length === 0) {
+        renderNoResults();
+        return;
+    }
 
-appState.filteredProducts.forEach(product => {
-const card = document.createElement('div');
-card.className = 'product-card';
-card.id = `card-${product.id}`;
+    const limit = appState.visibleCatalogLimit || 12;
+    const productsToRender = appState.filteredProducts.slice(0, limit);
 
-// Define stock class and text
-const isLowStock = product.estado.toLowerCase() === 'bajo stock' || product.unidades <= CONFIG.lowStockThreshold;
-const statusClass = isLowStock ? 'low-stock' : 'available';
-const statusText = isLowStock ? 'Bajo stock' : 'Disponible';
+    productsToRender.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.id = `card-${product.id}`;
 
-// Sizing label translations
-const sizeLabelSpanish = {
-chico: 'Chico',
-mediano: 'Mediano',
-grande: 'Grande'
-}[product.sizeCategory];
+        // Define stock class and text
+        const isLowStock = product.estado.toLowerCase() === 'bajo stock' || product.unidades <= CONFIG.lowStockThreshold;
+        const statusClass = isLowStock ? 'low-stock' : 'available';
+        const statusText = isLowStock ? 'Bajo stock' : 'Disponible';
 
+        // Sizing label translations
+        const sizeLabelSpanish = {
+            chico: 'Chico',
+            mediano: 'Mediano',
+            grande: 'Grande'
+        }[product.sizeCategory];
 
-// Calculate relative scale percentages based on maximum dimensions
+        const maxWidth = appState.maxCatalogWidth || 140;
+        const maxHeight = appState.maxCatalogHeight || 240;
 
-// Calculate relative scale percentages based on maximum dimensions
-const maxWidth = appState.maxCatalogWidth || 140;
-const maxHeight = appState.maxCatalogHeight || 240;
+        const maxScalePercent = 88;
+        const minScalePercent = 25;
+        const widthPercent = Math.max(minScalePercent, (product.ancho_cm / maxWidth) * maxScalePercent);
+        const heightPercent = Math.max(minScalePercent, (product.alto_cm / maxHeight) * maxScalePercent);
 
-// Scale to fit nicely inside the container (max 88% width/height to avoid touching container borders)
-const maxScalePercent = 88;
-const minScalePercent = 25; // Keep very small windows visible and proportional
-const widthPercent = Math.max(minScalePercent, (product.ancho_cm / maxWidth) * maxScalePercent);
-const heightPercent = Math.max(minScalePercent, (product.alto_cm / maxHeight) * maxScalePercent);
+        const isTriangular = product.forma === 'triangular';
+        const isTrapezoidal = product.forma === 'trapezoidal';
+        const isSpecialShape = isTriangular || isTrapezoidal;
+        const glassRepClass = isSpecialShape ? 'glass-representation triangular-pane' : 'glass-representation';
 
-const isTriangular = product.forma === 'triangular';
-const isTrapezoidal = product.forma === 'trapezoidal';
-const isSpecialShape = isTriangular || isTrapezoidal;
-const glassRepClass = isSpecialShape ? 'glass-representation triangular-pane' : 'glass-representation';
-
-let glassContentHtml = '';
-if (isTriangular) {
-glassContentHtml = `
+        let glassContentHtml = '';
+        if (isTriangular) {
+            glassContentHtml = `
                <svg viewBox="0 0 100 100" class="glass-svg-triangle glass-pane-simulation" preserveAspectRatio="none" style="width: ${widthPercent}%; height: ${heightPercent}%;">
                    <defs>
                        <linearGradient id="glassGrad-${product.id}" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -399,8 +441,8 @@ glassContentHtml = `
                    <span class="shape-badge">Triangular</span>
                </div>
            `;
-} else if (isTrapezoidal) {
-glassContentHtml = `
+        } else if (isTrapezoidal) {
+            glassContentHtml = `
                <svg viewBox="0 0 100 100" class="glass-svg-triangle glass-pane-simulation" preserveAspectRatio="none" style="width: ${widthPercent}%; height: ${heightPercent}%;">
                    <defs>
                        <linearGradient id="glassGrad-${product.id}" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -417,28 +459,28 @@ glassContentHtml = `
                    <span class="shape-badge">Inclinado</span>
                </div>
            `;
-} else {
-glassContentHtml = `
+        } else {
+            glassContentHtml = `
                <div class="glass-pane-simulation" style="width: ${widthPercent}%; height: ${heightPercent}%;"></div>
                <div class="glass-icon-wrapper">
                    <span class="size-category-badge">${sizeLabelSpanish}</span>
                </div>
            `;
-}
+        }
 
-const shapeDetailHtml = isTriangular ? `
+        const shapeDetailHtml = isTriangular ? `
                <li>
                    <span class="detail-label">Diseño</span>
                    <span class="detail-value highlight-shape">Con forma (Triangular)</span>
                </li>
-       ` : (isTrapezoidal ? `
+        ` : (isTrapezoidal ? `
                <li>
                    <span class="detail-label">Diseño</span>
                    <span class="detail-value highlight-shape">Con forma (Inclinado / Trapecio)</span>
                </li>
-       ` : '');
+        ` : '');
 
-card.innerHTML = `
+        card.innerHTML = `
            <div class="${glassRepClass}" aria-hidden="true">
                ${glassContentHtml}
            </div>
@@ -499,8 +541,35 @@ card.innerHTML = `
            </div>
        `;
 
-DOM.productsGrid.appendChild(card);
-});
+        DOM.productsGrid.appendChild(card);
+    });
+
+    // Render "Ver más medidas" button if there are remaining products
+    if (appState.filteredProducts.length > limit) {
+        const remaining = appState.filteredProducts.length - limit;
+        const loadMoreContainer = document.createElement('div');
+        loadMoreContainer.id = 'catalog-load-more-container';
+        loadMoreContainer.style.gridColumn = '1 / -1';
+        loadMoreContainer.style.textAlign = 'center';
+        loadMoreContainer.style.marginTop = '28px';
+        loadMoreContainer.style.marginBottom = '10px';
+
+        loadMoreContainer.innerHTML = `
+            <button id="load-more-catalog-btn" class="cta-button primary-hero-btn" style="padding: 14px 32px; font-size: 1rem; font-weight: 700; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: var(--shadow-md);">
+                Ver más medidas (${remaining} restantes)
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+        `;
+
+        DOM.productsGrid.appendChild(loadMoreContainer);
+
+        document.getElementById('load-more-catalog-btn').addEventListener('click', () => {
+            appState.visibleCatalogLimit = (appState.visibleCatalogLimit || 12) + 12;
+            renderGrid();
+        });
+    }
 }
 
 // Helper functions for pricing and currency formatting
@@ -531,18 +600,25 @@ window.buyProductDirectly = function(productId) {
 
     const unitPrice = getProductPrice(product);
     const totalCalc = qty * unitPrice;
+    const totalPriceText = `$${totalCalc.toLocaleString('es-CL')}`;
 
-    const message = `Hola, quiero cotizar este termopanel:
+    const codeOrDesc = product.id ? product.id : `${product.ancho_cm} × ${product.alto_cm} cm`;
+    const countText = qty === 1 ? '1 termopanel' : `${qty} termopaneles`;
+    const medidasSummary = `${product.ancho_cm} x ${product.alto_cm} cm (${qty} unidad${qty > 1 ? 'es' : ''})`;
 
-Termopanel fijo ${product.ancho_cm} x ${product.alto_cm} cm
-Cantidad: ${qty} unidad(es)
-Precio unitario: ${formatCLP(unitPrice)}
-Total estimado: ${formatCLP(totalCalc)}
+    // Registrar cotización en Google Sheets
+    recordQuoteToGoogleSheets({
+        fecha: getChileDateTime(),
+        medidas: medidasSummary,
+        total: totalPriceText,
+        vendido: 'Pendiente'
+    });
 
-Retiro: coordinado en El Monte, Región Metropolitana.
-
-Solo necesito confirmar disponibilidad actual.
-Gracias.`;
+    const message = `Hola, quiero cotizar ${countText} para mi proyecto.
+Medida del vidrio: ${product.ancho_cm} × ${product.alto_cm} cm.
+Alternativa seleccionada: ${codeOrDesc}.
+Total estimado: ${totalPriceText}.
+Quisiera confirmar disponibilidad y coordinar retiro en El Monte.`;
 
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
@@ -754,11 +830,6 @@ maxQty: product.unidades
 });
 }
 
-// Reset selector to 1 after adding to cart
-if (qtyInput) {
-qtyInput.value = 1;
-}
-
 // Save state
 saveCart();
 updateCartUI();
@@ -799,92 +870,57 @@ function saveCart() {
 localStorage.setItem('termopaneles_cart', JSON.stringify(appState.cart));
 }
 
-// Pricing rules by volume
-function getCartPricing(totalUnits) {
-let unitPrice = 25000;
-let priceLabel = '$25.000 c/u (Precio normal)';
-let totalEstimated = `$${(totalUnits * 25000).toLocaleString('es-CL')}`;
-let discountMsg = '';
-
-if (totalUnits >= 40) {
-    unitPrice = 15000;
-    priceLabel = '$15.000 c/u (Oferta volumen)';
-    totalEstimated = `$${(totalUnits * 15000).toLocaleString('es-CL')}`;
-    discountMsg = '¡Súper precio mayorista de $15.000 c/u aplicado! (Máximo descuento)';
-} else if (totalUnits >= 10) {
-unitPrice = 20000;
-priceLabel = '$20.000 c/u (Oferta volumen)';
-totalEstimated = `$${(totalUnits * 20000).toLocaleString('es-CL')}`;
-const unitsNeeded = 40 - totalUnits;
-discountMsg = `¡Precio mayorista de $20.000 c/u aplicado! Agrega ${unitsNeeded} más para obtener precio súper mayorista de $15.000 c/u.`;
-} else {
-const unitsNeeded = 10 - totalUnits;
-discountMsg = `Lleva 10 unidades o más en total para activar el precio de oferta de $20.000 c/u (Te faltan ${unitsNeeded} uni).`;
+// Get unit price based on total items in cart (tiered pricing logic)
+function getProductPriceByTotalQuantity(totalQty) {
+    if (totalQty >= 40) {
+        return 15000;
+    } else if (totalQty >= 10) {
+        return 20000;
+    } else {
+        return 25000;
+    }
 }
 
-return {
-unitPrice,
-priceLabel,
-totalEstimated,
-discountMsg
-};
-}
-
-// Update Cart DOM elements
+// Update Cart Drawer UI elements
 function updateCartUI() {
-if (!DOM.cartItemsList || !DOM.cartCounter || !DOM.cartTotalUnits) return;
-
-// Calculate total units in cart
 const totalUnits = appState.cart.reduce((sum, item) => sum + item.qty, 0);
 
-// Update floating counter in navbar
-DOM.cartCounter.textContent = totalUnits;
-DOM.cartCounter.style.display = totalUnits > 0 ? 'flex' : 'none';
+// Update badge counters
+if (DOM.cartCounter) DOM.cartCounter.textContent = totalUnits;
 
-// Check if empty
-if (appState.cart.length === 0) {
+if (totalUnits === 0) {
 if (DOM.cartEmptyState) DOM.cartEmptyState.style.display = 'flex';
+if (DOM.cartItemsList) DOM.cartItemsList.style.display = 'none';
 if (DOM.cartDrawerFooter) DOM.cartDrawerFooter.style.display = 'none';
-DOM.cartItemsList.innerHTML = '';
-DOM.cartTotalUnits.textContent = '0';
 return;
 }
 
-// Hide empty state and show footer
 if (DOM.cartEmptyState) DOM.cartEmptyState.style.display = 'none';
+if (DOM.cartItemsList) DOM.cartItemsList.style.display = 'block';
 if (DOM.cartDrawerFooter) DOM.cartDrawerFooter.style.display = 'block';
 
-DOM.cartTotalUnits.textContent = totalUnits;
+// Calculate volume discount unit price
+const unitPrice = getProductPriceByTotalQuantity(totalUnits);
+const totalPrice = totalUnits * unitPrice;
 
-// Update pricing and discount display in cart footer
-const pricing = getCartPricing(totalUnits);
-const hasDiscount = totalUnits >= 10;
-if (DOM.cartUnitPrice) {
-DOM.cartUnitPrice.textContent = pricing.priceLabel;
-if (hasDiscount) {
-DOM.cartUnitPrice.className = 'price-highlight discount-applied';
-} else {
-DOM.cartUnitPrice.className = '';
-}
-}
-if (DOM.cartTotalPrice) {
-DOM.cartTotalPrice.textContent = pricing.totalEstimated;
-if (hasDiscount) {
-DOM.cartTotalPrice.className = 'price-highlight discount-applied';
-} else {
-DOM.cartTotalPrice.className = '';
-}
-}
+if (DOM.cartTotalUnits) DOM.cartTotalUnits.textContent = totalUnits;
+if (DOM.cartUnitPrice) DOM.cartUnitPrice.textContent = `$${unitPrice.toLocaleString('es-CL')} c/u`;
+if (DOM.cartTotalPrice) DOM.cartTotalPrice.textContent = `$${totalPrice.toLocaleString('es-CL')} CLP`;
+
+// Update tier messaging
 if (DOM.cartDiscountMessage) {
-DOM.cartDiscountMessage.textContent = pricing.discountMsg;
-if (hasDiscount) {
-DOM.cartDiscountMessage.className = 'cart-discount-message success';
+if (totalUnits < 10) {
+const needed = 10 - totalUnits;
+DOM.cartDiscountMessage.innerHTML = `💡 ¡Agrega <strong>${needed}</strong> unidad(es) más para precio mayorista ($20.000 c/u)!`;
+} else if (totalUnits < 40) {
+const needed = 40 - totalUnits;
+DOM.cartDiscountMessage.innerHTML = `🎉 ¡Llegaste a precio Mayorista! Agrega <strong>${needed}</strong> más para Súper Mayorista ($15.000 c/u).`;
 } else {
-DOM.cartDiscountMessage.className = 'cart-discount-message info';
+DOM.cartDiscountMessage.innerHTML = `🔥 ¡Felicidades! Obtuviste el máximo descuento Súper Mayorista ($15.000 c/u).`;
 }
 }
 
-// Render items list
+// Render Cart List Items
 DOM.cartItemsList.innerHTML = '';
 appState.cart.forEach(item => {
 const itemElement = document.createElement('div');
@@ -902,7 +938,7 @@ itemElement.innerHTML = `
            
            <div class="cart-item-details">
                <div class="cart-item-title">${item.medida_cm}${shapeLabel}</div>
-               <div class="cart-item-sub">Stock Máx: ${item.maxQty} u | <strong style="color: var(--color-olive); font-weight: 600;">$${pricing.unitPrice.toLocaleString('es-CL')} c/u</strong></div>
+               <div class="cart-item-sub">Stock Máx: ${item.maxQty} u | <strong style="color: var(--color-olive); font-weight: 600;">$${unitPrice.toLocaleString('es-CL')} c/u</strong></div>
                
                <div class="cart-qty-controls">
                    <button class="qty-btn" onclick="updateCartQty('${item.id}', -1)" aria-label="Restar una unidad">-</button>
@@ -929,27 +965,42 @@ function checkoutCart() {
     if (appState.cart.length === 0) return;
 
     let totalEstimado = 0;
-    const itemsText = appState.cart.map((item, index) => {
+    let totalUnidades = 0;
+
+    const medidasArray = [];
+    appState.cart.forEach(item => {
         const unitPrice = getProductPrice(item);
         const subtotal = item.qty * unitPrice;
         totalEstimado += subtotal;
+        totalUnidades += item.qty;
+        medidasArray.push(`${item.ancho_cm} x ${item.alto_cm} cm (${item.qty} unidad${item.qty > 1 ? 'es' : ''})`);
+    });
 
-        return `${index + 1}) Termopanel fijo ${item.ancho_cm} x ${item.alto_cm} cm
-Cantidad: ${item.qty}
-Precio unitario: ${formatCLP(unitPrice)}
-Subtotal: ${formatCLP(subtotal)}`;
+    const totalText = `$${totalEstimado.toLocaleString('es-CL')}`;
+    const medidasSummary = medidasArray.join(', ');
+
+    // Registrar cotización en Google Sheets (asíncrono, no bloqueante)
+    recordQuoteToGoogleSheets({
+        fecha: getChileDateTime(),
+        medidas: medidasSummary,
+        total: totalText,
+        vendido: 'Pendiente'
+    });
+
+    const itemsText = appState.cart.map((item, index) => {
+        const unitPrice = getProductPrice(item);
+        const subtotal = item.qty * unitPrice;
+        return `${index + 1}) Termopanel fijo ${item.ancho_cm} × ${item.alto_cm} cm
+Cantidad: ${item.qty} unidad(es)
+Subtotal: $${subtotal.toLocaleString('es-CL')}`;
     }).join('\n\n');
 
-    const message = `Hola, quiero cotizar los siguientes termopaneles:
+    const message = `Hola, quiero cotizar ${totalUnidades} termopaneles para mi proyecto:
 
 ${itemsText}
 
-Total estimado del carrito: ${formatCLP(totalEstimado)}
-
-Retiro: coordinado en El Monte, Región Metropolitana.
-
-Solo necesito confirmar disponibilidad actual.
-Gracias.`;
+Total estimado: ${totalText}.
+Quisiera confirmar disponibilidad y coordinar retiro en El Monte.`;
 
     appState.cart = [];
     saveCart();
@@ -975,308 +1026,188 @@ let currentIndex = 0;
 let startX = 0;
 let isDragging = false;
 
-// Dynamic indicators setup
-function updateIndicators() {
-if (!indicatorsContainer) return;
-indicatorsContainer.innerHTML = '';
-slides.forEach((_, idx) => {
-const dot = document.createElement('span');
-dot.className = `indicator-dot${idx === currentIndex ? ' active' : ''}`;
-dot.dataset.slide = idx;
-dot.addEventListener('click', () => {
-goToSlide(idx);
-});
+// Create indicators dynamically
+slides.forEach((_, index) => {
+const dot = document.createElement('button');
+dot.className = index === 0 ? 'indicator-dot active' : 'indicator-dot';
+dot.setAttribute('aria-label', `Ir a foto ${index + 1}`);
+dot.addEventListener('click', () => goToSlide(index));
 indicatorsContainer.appendChild(dot);
+});
+
+const dots = Array.from(indicatorsContainer.children);
+
+function updateCarouselUI() {
+track.style.transform = `translateX(-${currentIndex * 100}%)`;
+
+// Update dots active class
+dots.forEach((dot, index) => {
+dot.classList.toggle('active', index === currentIndex);
 });
 }
 
 function goToSlide(index) {
-if (index < 0) index = 0;
-if (index >= slides.length) index = slides.length - 1;
-
-currentIndex = index;
-const offset = -currentIndex * 100;
-track.style.transform = `translateX(${offset}%)`;
-
-// Update dots
-if (indicatorsContainer) {
-const dots = indicatorsContainer.querySelectorAll('.indicator-dot');
-dots.forEach((dot, idx) => {
-if (idx === currentIndex) {
-dot.classList.add('active');
+if (index < 0) {
+currentIndex = slides.length - 1;
+} else if (index >= slides.length) {
+currentIndex = 0;
 } else {
-dot.classList.remove('active');
+currentIndex = index;
 }
-});
-}
-
-// Update arrow visibility (opacities)
-if (prevBtn) prevBtn.style.opacity = currentIndex === 0 ? '0.4' : '1';
-if (nextBtn) nextBtn.style.opacity = currentIndex === slides.length - 1 ? '0.4' : '1';
+updateCarouselUI();
 }
 
-// Click listeners
-if (prevBtn) {
-prevBtn.addEventListener('click', () => {
-if (currentIndex > 0) goToSlide(currentIndex - 1);
-});
-}
+// Button listeners
+if (prevBtn) prevBtn.addEventListener('click', () => goToSlide(currentIndex - 1));
+if (nextBtn) nextBtn.addEventListener('click', () => goToSlide(currentIndex + 1));
 
-if (nextBtn) {
-nextBtn.addEventListener('click', () => {
-if (currentIndex < slides.length - 1) goToSlide(currentIndex + 1);
-});
-}
-
-// Touch Gestures for mobile swipe
+// Touch / Swipe support for mobile devices
 track.addEventListener('touchstart', (e) => {
 startX = e.touches[0].clientX;
 isDragging = true;
-track.style.transition = 'none'; // remove transition for real-time tracking
-});
-
-track.addEventListener('touchmove', (e) => {
-if (!isDragging) return;
-const currentX = e.touches[0].clientX;
-const diffX = currentX - startX;
-
-const trackWidth = track.offsetWidth;
-const dragPercent = (diffX / trackWidth) * 100;
-const currentTranslate = -currentIndex * 100 + dragPercent;
-
-// Add elastic bounds
-const maxDrag = 15;
-const minBound = -((slides.length - 1) * 100) - maxDrag;
-const maxBound = maxDrag;
-const clampedTranslate = Math.max(minBound, Math.min(maxBound, currentTranslate));
-
-track.style.transform = `translateX(${clampedTranslate}%)`;
-});
+}, { passive: true });
 
 track.addEventListener('touchend', (e) => {
 if (!isDragging) return;
-isDragging = false;
-track.style.transition = 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
-
 const endX = e.changedTouches[0].clientX;
-const diffX = endX - startX;
-const trackWidth = track.offsetWidth;
-const swipeThreshold = trackWidth * 0.15; // 15% swipe threshold
+const diffX = startX - endX;
 
-if (diffX < -swipeThreshold && currentIndex < slides.length - 1) {
-goToSlide(currentIndex + 1);
-} else if (diffX > swipeThreshold && currentIndex > 0) {
-goToSlide(currentIndex - 1);
+if (Math.abs(diffX) > 40) { // minimum threshold for swipe
+if (diffX > 0) {
+goToSlide(currentIndex + 1); // swipe left -> next
 } else {
-goToSlide(currentIndex);
+goToSlide(currentIndex - 1); // swipe right -> prev
 }
-});
-
-// Initialize
-updateIndicators();
-goToSlide(0);
+}
+isDragging = false;
+}, { passive: true });
 }
 
 // ==========================================================================
-// Unified Sizing Tool Implementation ("Busca una medida o planifica un vano")
+// Unified Sizing & Coverage Logic (Calculadora + Planificador)
 // ==========================================================================
 
-appState.sizingMode = 'individual'; // 'individual' or 'vano'
-
-window.switchSizingMode = function(mode) {
-    appState.sizingMode = mode;
-    const cardInd = document.getElementById('mode-card-individual');
-    const cardVano = document.getElementById('mode-card-vano');
-    const badgeInd = document.getElementById('mode-badge-individual');
-    const badgeVano = document.getElementById('mode-badge-vano');
-    const contextTitle = document.getElementById('mode-context-title');
-    const contextText = document.getElementById('mode-context-text');
-    const contextHelp = document.getElementById('mode-context-help');
-    const advOpts = document.getElementById('sizing-advanced-options');
+function initUnifiedSizing() {
+    const widthInput = document.getElementById('sizing-width');
+    const heightInput = document.getElementById('sizing-height');
     const searchBtn = document.getElementById('sizing-search-btn');
 
+    if (!searchBtn) return;
+
+    searchBtn.addEventListener('click', () => {
+        const wVal = parseFloat(widthInput.value);
+        const hVal = parseFloat(heightInput.value);
+
+        if (isNaN(wVal) || isNaN(hVal) || wVal <= 0 || hVal <= 0) {
+            alert('Por favor, ingresa dimensiones válidas en centímetros.');
+            return;
+        }
+
+        runUnifiedSearch(wVal, hVal);
+    });
+}
+
+window.switchSizingMode = function(mode) {
+    const cardIndiv = document.getElementById('mode-card-individual');
+    const cardVano = document.getElementById('mode-card-vano');
+    const badgeIndiv = document.getElementById('mode-badge-individual');
+    const badgeVano = document.getElementById('mode-badge-vano');
+    const titleContext = document.getElementById('mode-context-title');
+    const textContext = document.getElementById('mode-context-text');
+    const helpContext = document.getElementById('mode-context-help');
+    const labelWidth = document.getElementById('sizing-width-label');
+    const labelHeight = document.getElementById('sizing-height-label');
+    const inputWidth = document.getElementById('sizing-width');
+    const inputHeight = document.getElementById('sizing-height');
+    const advOptions = document.getElementById('sizing-advanced-options');
+
     if (mode === 'individual') {
-        if (cardInd) cardInd.classList.add('active');
+        if (cardIndiv) cardIndiv.classList.add('active');
         if (cardVano) cardVano.classList.remove('active');
-        if (badgeInd) badgeInd.textContent = "✓ Seleccionado";
-        if (badgeVano) badgeVano.textContent = "Opción 2";
-        if (contextTitle) contextTitle.textContent = "Ingresa la medida exacta que necesitas";
-        if (contextText) contextText.textContent = "Buscaremos si existe un termopanel individual igual o parecido en stock.";
-        if (contextHelp) contextHelp.style.display = 'none';
-        if (advOpts) {
-            advOpts.style.display = 'none';
-            advOpts.open = false;
-        }
-        if (searchBtn) searchBtn.textContent = "Buscar alternativas";
+        if (badgeIndiv) badgeIndiv.textContent = '✓ Seleccionado';
+        if (badgeVano) badgeVano.textContent = 'Opción 2';
+
+        if (titleContext) titleContext.textContent = 'Ingresa la medida exacta que necesitas';
+        if (textContext) textContext.textContent = 'Buscaremos si existe un termopanel individual igual o parecido en stock.';
+        if (helpContext) helpContext.style.display = 'none';
+
+        if (labelWidth) labelWidth.textContent = 'Ancho deseado (cm)';
+        if (labelHeight) labelHeight.textContent = 'Alto deseado (cm)';
+        if (inputWidth) inputWidth.placeholder = 'Ej: 80';
+        if (inputHeight) inputHeight.placeholder = 'Ej: 120';
+
+        if (advOptions) advOptions.style.display = 'none';
     } else {
-        if (cardInd) cardInd.classList.remove('active');
         if (cardVano) cardVano.classList.add('active');
-        if (badgeInd) badgeInd.textContent = "Opción 1";
-        if (badgeVano) badgeVano.textContent = "✓ Seleccionado";
-        if (contextTitle) contextTitle.textContent = "Ingresa las medidas totales de tu espacio";
-        if (contextText) contextText.textContent = "Buscaremos alternativas usando los termopaneles disponibles.";
-        if (contextHelp) contextHelp.style.display = 'block';
-        if (advOpts) {
-            advOpts.style.display = 'block';
-            advOpts.open = false;
-        }
-        if (searchBtn) searchBtn.textContent = "Buscar alternativas";
+        if (cardIndiv) cardIndiv.classList.remove('active');
+        if (badgeVano) badgeVano.textContent = '✓ Seleccionado';
+        if (badgeIndiv) badgeIndiv.textContent = 'Opción 1';
+
+        if (titleContext) titleContext.textContent = 'Ingresa las medidas totales de tu espacio';
+        if (textContext) textContext.textContent = 'Buscaremos alternativas usando los termopaneles disponibles.';
+        if (helpContext) helpContext.style.display = 'block';
+
+        if (labelWidth) labelWidth.textContent = 'Ancho total del espacio (cm)';
+        if (labelHeight) labelHeight.textContent = 'Alto total del espacio (cm)';
+        if (inputWidth) inputWidth.placeholder = 'Ej: 300';
+        if (inputHeight) inputHeight.placeholder = 'Ej: 240';
+
+        if (advOptions) advOptions.style.display = 'block';
+    }
+
+    // Re-run search if dimensions exist
+    const wVal = parseFloat(inputWidth.value);
+    const hVal = parseFloat(inputHeight.value);
+    if (!isNaN(wVal) && !isNaN(hVal) && wVal > 0 && hVal > 0) {
+        runUnifiedSearch(wVal, hVal);
     }
 };
 
-function initUnifiedSizing() {
-    const wInput = document.getElementById('sizing-width');
-    const hInput = document.getElementById('sizing-height');
-    const searchBtn = document.getElementById('sizing-search-btn');
+function runUnifiedSearch(wVal, hVal) {
+    const cardIndiv = document.getElementById('mode-card-individual');
+    const isIndividualMode = cardIndiv && cardIndiv.classList.contains('active');
     const resultsContainer = document.getElementById('sizing-results');
 
-    if (!wInput || !hInput || !searchBtn || !resultsContainer) return;
-
-    searchBtn.addEventListener('click', () => {
-        const widthVal = parseFloat(wInput.value);
-        const heightVal = parseFloat(hInput.value);
-
-        if (isNaN(widthVal) || isNaN(heightVal) || widthVal <= 0 || heightVal <= 0) {
-            alert('Por favor, ingresa un ancho y alto válidos en centímetros.');
-            return;
-        }
-
-        if (appState.products.length === 0) {
-            alert('Cargando el inventario, por favor intenta en un momento.');
-            return;
-        }
-
-        runUnifiedSearch(widthVal, heightVal);
-    });
-}
-
-function runUnifiedSearch(userWidth, userHeight) {
-    const resultsContainer = document.getElementById('sizing-results');
     if (!resultsContainer) return;
 
-    resultsContainer.innerHTML = '';
-    const mode = appState.sizingMode || 'individual';
+    if (isIndividualMode) {
+        runSinglePanelSearch(wVal, hVal, resultsContainer);
+    } else {
+        runVanoPlannerSearch(wVal, hVal, resultsContainer);
+    }
+}
 
-    // Calculate distance for each product
-    const scoredProducts = appState.products.map(p => {
+// Option 1: Search single panel matches
+function runSinglePanelSearch(userWidth, userHeight, container) {
+    container.innerHTML = '';
+
+    const exactMatch = appState.products.find(p => p.ancho_cm === userWidth && p.alto_cm === userHeight);
+
+    let similarProducts = [...appState.products].map(p => {
         const wDiff = p.ancho_cm - userWidth;
         const hDiff = p.alto_cm - userHeight;
-        const totalDist = Math.abs(wDiff) + Math.abs(hDiff);
-        return {
-            product: p,
-            wDiff,
-            hDiff,
-            totalDist,
-            isExact: (wDiff === 0 && hDiff === 0)
-        };
+        const totalDiff = Math.abs(wDiff) + Math.abs(hDiff);
+        return { product: p, wDiff, hDiff, totalDiff };
     });
 
-    if (mode === 'individual') {
-        // MODO 1: Buscar pieza individual
-        const exactMatch = scoredProducts.find(m => m.isExact);
+    similarProducts.sort((a, b) => a.totalDiff - b.totalDiff);
+    const bestSimilar = similarProducts.slice(0, 4);
 
-        if (exactMatch) {
-            const header = document.createElement('div');
-            header.className = 'sizing-result-header-alert success';
-            header.innerHTML = `<span>✅ Encontramos una alternativa individual disponible.</span>`;
-            resultsContainer.appendChild(header);
-
-            renderSingleProductCard(exactMatch.product, exactMatch.wDiff, exactMatch.hDiff, resultsContainer);
-        } else {
-            // Check close matches within 15 cm
-            const filteredMatches = scoredProducts.filter(match => {
-                return Math.abs(match.wDiff) <= 15 && Math.abs(match.hDiff) <= 15;
-            });
-            filteredMatches.sort((a, b) => a.totalDist - b.totalDist);
-            const topMatches = filteredMatches.slice(0, 3);
-
-            if (topMatches.length > 0) {
-                const header = document.createElement('div');
-                header.className = 'sizing-result-header-alert info';
-                header.innerHTML = `<span>🔍 No encontramos una medida exacta, pero estas medidas cercanas podrían servirte.</span>`;
-                resultsContainer.appendChild(header);
-
-                topMatches.forEach(match => {
-                    renderSingleProductCard(match.product, match.wDiff, match.hDiff, resultsContainer);
-                });
-            } else {
-                resultsContainer.innerHTML = `
-                    <div class="calc-no-results">
-                        <h3>Lo sentimos, no tenemos esa medida exacta</h3>
-                        <p>No disponemos de un termopanel individual dentro de los 15 cm de tu vano (${userWidth} x ${userHeight} cm).</p>
-                        <div class="calc-no-results-actions" style="margin-top: 15px;">
-                            <button class="calc-btn" onclick="switchSizingMode('vano')">Probar opción Cubrir un Vano Completo</button>
-                            <a href="#catalog-section" class="calc-btn-secondary" style="margin-top: 10px; display: inline-block;">Ver Catálogo Completo</a>
-                        </div>
-                    </div>
-                `;
-            }
-        }
+    if (exactMatch) {
+        const exactWrap = document.createElement('div');
+        exactWrap.className = 'exact-match-badge-wrap';
+        exactWrap.innerHTML = `<span class="exact-badge">🎯 ¡Medida Exacta en Stock!</span>`;
+        container.appendChild(exactWrap);
+        renderSingleProductCard(exactMatch, 0, 0, container);
     } else {
-        // MODO 2: Cubrir vano completo
-        if (userWidth > 600 || userHeight > 300) {
-            resultsContainer.innerHTML = `
-                <div class="planner-limit-exceeded">
-                    <h3>Medidas superan el límite del stock estándar</h3>
-                    <p>Para espacios mayores o proyectos con varios paños, solicita una cotización especial y revisamos alternativas.</p>
-                    <div class="planner-limit-exceeded-actions" style="margin-top: 15px;">
-                        <button onclick="quoteCustomClosing(${userWidth}, ${userHeight})" class="calc-btn">Cotizar por WhatsApp</button>
-                    </div>
-                </div>
-            `;
-            return;
-        }
+        const noExactMsg = document.createElement('div');
+        noExactMsg.className = 'no-exact-msg';
+        noExactMsg.innerHTML = `<p>No tenemos la medida exacta <strong>${userWidth} x ${userHeight} cm</strong> en stock, pero aquí tienes las <strong>medidas más cercanas disponibles</strong>:</p>`;
+        container.appendChild(noExactMsg);
 
-        // First check if there is a single pane exact/close match
-        const singleMatches = scoredProducts.filter(match => {
-            return Math.abs(match.wDiff) <= 5 && Math.abs(match.hDiff) <= 5;
-        }).sort((a, b) => a.totalDist - b.totalDist);
-
-        if (singleMatches.length > 0) {
-            const singleHeader = document.createElement('div');
-            singleHeader.className = 'sizing-result-header-alert success';
-            singleHeader.innerHTML = `<span>✨ Coincidencia de un solo paño en stock</span>`;
-            resultsContainer.appendChild(singleHeader);
-
-            renderSingleProductCard(singleMatches[0].product, singleMatches[0].wDiff, singleMatches[0].hDiff, resultsContainer);
-        }
-
-        // Read advanced parameters
-        const pInput = document.getElementById('planner-panes');
-        const dSelect = document.getElementById('planner-distribution');
-        const prSelect = document.getElementById('planner-priority');
-        const tSelect = document.getElementById('planner-tolerance');
-        const rSelect = document.getElementById('planner-rotation');
-
-        const panesVal = pInput ? pInput.value : 'all';
-        const distVal = dSelect ? dSelect.value : 'auto';
-        const priorityVal = prSelect ? prSelect.value : 'joints';
-        const toleranceVal = tSelect ? parseFloat(tSelect.value) : 5;
-        const rotationVal = rSelect ? rSelect.value : 'yes';
-
-        const alternatives = findCoverageCombinationsAdvanced(
-            userWidth, userHeight, panesVal, distVal, priorityVal, rotationVal, toleranceVal, appState.products
-        );
-
-        if (alternatives.length > 0) {
-            const comboHeader = document.createElement('div');
-            comboHeader.className = 'sizing-result-header-alert info';
-            comboHeader.style.marginTop = singleMatches.length > 0 ? '24px' : '0';
-            comboHeader.innerHTML = `<span>🧱 Alternativas de cobertura con combinaciones modulares</span>`;
-            resultsContainer.appendChild(comboHeader);
-
-            renderPlannerProposals(alternatives, userWidth, userHeight, resultsContainer);
-        } else if (singleMatches.length === 0) {
-            resultsContainer.innerHTML = `
-                <div class="calc-no-results">
-                    <h3>Sin combinaciones disponibles</h3>
-                    <p>No encontramos una combinación cercana para un vano de ${userWidth} x ${userHeight} cm en el inventario actual.</p>
-                    <div class="calc-no-results-actions" style="margin-top: 15px;">
-                        <button onclick="quotePlannerFallback(${userWidth}, ${userHeight})" class="calc-btn">Cotizar en WhatsApp</button>
-                    </div>
-                </div>
-            `;
-        }
+        bestSimilar.forEach(item => {
+            renderSingleProductCard(item.product, item.wDiff, item.hDiff, container);
+        });
     }
 }
 
@@ -1287,12 +1218,16 @@ function renderSingleProductCard(product, wDiff, hDiff, container) {
 
     const formatDiff = (diff, axis) => {
         const axisText = axis === 'w' ? 'ancho' : 'alto';
-        if (diff === 0) {
+        if (Math.abs(diff) < 0.01) {
             return `<span class="diff-tag exact">${axisText === 'ancho' ? 'Ancho exacto' : 'Alto exacto'}</span>`;
-        } else if (diff > 0) {
-            return `<span class="diff-tag plus">+${diff} cm (${axisText === 'ancho' ? 'más ancho' : 'más alto'})</span>`;
+        }
+        const absVal = Math.abs(diff);
+        const roundedVal = (Math.round(absVal * 10) / 10).toString().replace('.', ',');
+
+        if (diff > 0) {
+            return `<span class="diff-tag plus">${roundedVal} cm ${axisText === 'ancho' ? 'más ancho' : 'más alto'}</span>`;
         } else {
-            return `<span class="diff-tag minus">${diff} cm (${axisText === 'ancho' ? 'más angosto' : 'más bajo'})</span>`;
+            return `<span class="diff-tag minus">${roundedVal} cm ${axisText === 'ancho' ? 'más angosto' : 'más bajo'}</span>`;
         }
     };
 
@@ -1317,965 +1252,473 @@ function renderSingleProductCard(product, wDiff, hDiff, container) {
     container.appendChild(card);
 }
 
+// Option 2: Search Vano Coverage Combinations
+function runVanoPlannerSearch(targetW, targetH, container) {
+    const maxPanesVal = document.getElementById('planner-panes').value;
+    const distType = document.getElementById('planner-distribution').value;
+    const priority = document.getElementById('planner-priority').value;
+    const tolerance = parseFloat(document.getElementById('planner-tolerance').value);
+    const allowRotation = document.getElementById('planner-rotation').value;
+
+    container.innerHTML = `<div style="text-align: center; padding: 20px;"><div class="spinner" style="margin: 0 auto 10px;"></div><p>Calculando mejores distribuciones...</p></div>`;
+
+    setTimeout(() => {
+        const proposals = findCoverageCombinationsAdvanced(
+            targetW, targetH, maxPanesVal, distType, priority, allowRotation, tolerance, appState.products
+        );
+        renderPlannerProposals(proposals, targetW, targetH, container);
+    }, 50);
+}
 
 // Algoritmo de Búsqueda Avanzado de Cobertura
 function findCoverageCombinationsAdvanced(targetW, targetH, maxPanesStr, distType, priority, allowRotationStr, tolerance, inventory) {
-const allowRotation = (allowRotationStr === 'yes');
+    const maxPanes = maxPanesStr === 'all' ? 8 : parseInt(maxPanesStr, 10);
+    const allowRotation = allowRotationStr === 'yes';
 
-// Máximo de termopaneles por propuesta: 8 (Límite técnico)
-let maxPanes = 8;
-if (maxPanesStr !== 'all') {
-maxPanes = parseInt(maxPanesStr, 10);
-if (isNaN(maxPanes) || maxPanes > 8) maxPanes = 8;
+    let alternatives = [];
+
+    // 1. Cobertura con paño único (1 paño)
+    if (distType === 'auto' || distType === 'row' || distType === 'column') {
+        inventory.forEach(item => {
+            if (item.unidades < 1) return;
+            checkSinglePane(item, item.ancho_cm, item.alto_cm, false);
+            if (allowRotation && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
+                checkSinglePane(item, item.alto_cm, item.ancho_cm, true);
+            }
+        });
+    }
+
+    function checkSinglePane(item, w, h, rotated) {
+        if (Math.abs(w - targetW) <= tolerance && Math.abs(h - targetH) <= tolerance) {
+            alternatives.push({
+                type: 'single',
+                score: 0,
+                proposal: {
+                    type: 'single',
+                    totalWidth: w,
+                    totalHeight: h,
+                    widthDiff: w - targetW,
+                    heightDiff: h - targetH,
+                    unitCount: 1,
+                    totalPrice: getProductPrice(item),
+                    panes: [{ product: item, rotated, width: w, height: h }]
+                }
+            });
+        }
+    }
+
+    // 2. Fila horizontal / Paños en paralelo (1 fila x N columnas)
+    if (distType === 'auto' || distType === 'column' || distType === 'row') {
+        const rowCombos = findRowCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory);
+        rowCombos.forEach(combo => {
+            const totalPrice = combo.panes.reduce((sum, p) => sum + getProductPrice(p.product), 0);
+            alternatives.push({
+                type: 'row',
+                score: 0,
+                proposal: {
+                    type: 'row',
+                    totalWidth: combo.totalWidth,
+                    totalHeight: combo.totalHeight,
+                    widthDiff: combo.widthDiff,
+                    heightDiff: combo.heightDiff,
+                    unitCount: combo.panes.length,
+                    totalPrice,
+                    panes: combo.panes
+                }
+            });
+        });
+    }
+
+    // 3. Columna / Dos filas (2 filas x N columnas)
+    if (distType === 'auto' || distType === 'two-rows' || distType === 'grid') {
+        const gridCombos = findTwoRowCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory);
+        gridCombos.forEach(combo => {
+            const totalPrice = combo.panes.reduce((sum, p) => sum + getProductPrice(p.product), 0);
+            alternatives.push({
+                type: 'two-rows',
+                score: 0,
+                proposal: {
+                    type: 'two-rows',
+                    totalWidth: combo.totalWidth,
+                    totalHeight: combo.totalHeight,
+                    widthDiff: combo.widthDiff,
+                    heightDiff: combo.heightDiff,
+                    unitCount: combo.panes.length,
+                    totalPrice,
+                    panes: combo.panes
+                }
+            });
+        });
+    }
+
+    // 4. Cuadrícula R x C
+    if (distType === 'auto' || distType === 'grid') {
+        const gridMatCombos = findGridCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory);
+        gridMatCombos.forEach(combo => {
+            const totalPrice = combo.panes.reduce((sum, p) => sum + getProductPrice(p.product), 0);
+            alternatives.push({
+                type: 'grid',
+                score: 0,
+                proposal: {
+                    type: 'grid',
+                    totalWidth: combo.totalWidth,
+                    totalHeight: combo.totalHeight,
+                    widthDiff: combo.widthDiff,
+                    heightDiff: combo.heightDiff,
+                    unitCount: combo.panes.length,
+                    totalPrice,
+                    panes: combo.panes
+                }
+            });
+        });
+    }
+
+    // Calcular Score para ordenamiento
+    alternatives.forEach(alt => {
+        const p = alt.proposal;
+        const absWDiff = Math.abs(p.widthDiff);
+        const absHDiff = Math.abs(p.heightDiff);
+        const diffScore = (absWDiff * 2) + (absHDiff * 2);
+        const panePenalty = p.unitCount * 5;
+
+        let score = diffScore + panePenalty;
+
+        if (priority === 'joints') {
+            score += p.unitCount * 15;
+        } else if (priority === 'coverage') {
+            score = (absWDiff * 5) + (absHDiff * 5) + p.unitCount;
+        } else if (priority === 'gaps') {
+            score = (absWDiff * 10) + (absHDiff * 10);
+        } else if (priority === 'stock') {
+            const lowStockCount = p.panes.filter(pane => pane.product.unidades < 3).length;
+            score += lowStockCount * 20;
+        }
+
+        alt.score = score;
+    });
+
+    alternatives.sort((a, b) => a.score - b.score);
+
+    // Filtrar propuestas duplicadas en dimensiones
+    const uniqueProps = [];
+    const seenSignatures = new Set();
+
+    alternatives.forEach(alt => {
+        const p = alt.proposal;
+        const signature = `${p.unitCount}_${p.totalWidth.toFixed(1)}_${p.totalHeight.toFixed(1)}_${p.totalPrice}`;
+        if (!seenSignatures.has(signature)) {
+            seenSignatures.add(signature);
+            uniqueProps.push(alt);
+        }
+    });
+
+    return uniqueProps.slice(0, 6);
 }
 
-let allProposals = [];
-
-// Fila única (lado a lado horizontal)
-if (distType === 'row' || distType === 'auto') {
-allProposals = allProposals.concat(findRowCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory));
-}
-// Columna única (apilados verticalmente)
-if (distType === 'column' || distType === 'auto') {
-allProposals = allProposals.concat(findColumnCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory));
-}
-// Dos filas apiladas
-if (distType === 'two-rows' || distType === 'auto') {
-allProposals = allProposals.concat(findTwoRowsCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory));
-}
-// Cuadrícula R x C
-if (distType === 'grid' || distType === 'auto') {
-allProposals = allProposals.concat(findGridCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory));
-}
-
-// Deduplicar propuestas por estructura de filas
-const uniqueProposals = [];
-const seenLayouts = new Set();
-
-allProposals.forEach(prop => {
-const rowKeys = prop.rows.map(row => row.map(p => p.id).join(','));
-const layoutKey = prop.type + '|' + rowKeys.join(';');
-
-if (!seenLayouts.has(layoutKey)) {
-seenLayouts.add(layoutKey);
-uniqueProposals.push(prop);
-}
-});
-
-// Puntuación
-uniqueProposals.forEach(prop => {
-prop.areaCovered = (prop.totalWidth * prop.totalHeight) / 10000; // m2
-prop.unitCount = prop.panes.length;
-
-const pricing = getCartPricing(prop.unitCount);
-prop.totalPrice = prop.unitCount * pricing.unitPrice;
-
-const wDiff = Math.abs(prop.widthDiff);
-const hDiff = Math.abs(prop.heightDiff);
-
-// Stock minimo de los productos usados
-const minStock = Math.min(...prop.panes.map(p => p.product.unidades));
-
-// Sub-scores para las alternativas
-prop.scoreJoints = prop.unitCount; 
-prop.scoreCoverage = -prop.areaCovered; 
-prop.scoreGaps = wDiff + hDiff; 
-prop.scoreStock = -minStock; 
-
-// Cálculo de score según prioridad seleccionada
-if (priority === 'joints') {
-prop.score = prop.unitCount * 2.0 + (wDiff + hDiff) * 0.5;
-} else if (priority === 'coverage') {
-prop.score = -prop.areaCovered * 100 + prop.unitCount * 0.15 + (wDiff + hDiff) * 0.2;
-} else if (priority === 'gaps') {
-prop.score = (wDiff + hDiff) * 2.0 + prop.unitCount * 0.15;
-} else if (priority === 'stock') {
-prop.score = -minStock * 0.5 + (wDiff + hDiff) * 1.0 + prop.unitCount * 0.15;
-} else {
-prop.score = (wDiff + hDiff) * 1.5 + prop.unitCount * 0.5;
-}
-});
-
-// Selección de las 3 alternativas distintas
-const selected = [];
-
-// 1. Mejor alternativa general
-uniqueProposals.sort((a, b) => a.score - b.score);
-if (uniqueProposals.length > 0) {
-selected.push({
-rankTitle: 'Mejor alternativa general',
-proposal: uniqueProposals[0]
-});
-}
-
-function isAlreadySelected(prop) {
-return selected.some(s => {
-const rowKeysS = s.proposal.rows.map(row => row.map(p => p.id).join(',')).join(';');
-const rowKeysP = prop.rows.map(row => row.map(p => p.id).join(',')).join(';');
-return s.proposal.type === prop.type && rowKeysS === rowKeysP;
-});
-}
-
-// 2. Alternativa con menos uniones
-const sortedJoints = [...uniqueProposals].sort((a, b) => {
-if (a.scoreJoints !== b.scoreJoints) return a.scoreJoints - b.scoreJoints;
-return a.scoreGaps - b.scoreGaps;
-});
-
-let jointsProp = sortedJoints.find(p => !isAlreadySelected(p));
-if (jointsProp) {
-selected.push({
-rankTitle: 'Alternativa con menos uniones',
-proposal: jointsProp
-});
-}
-
-// 3. Alternativa con mejor cobertura
-const sortedCoverage = [...uniqueProposals].sort((a, b) => {
-if (Math.abs(a.scoreCoverage - b.scoreCoverage) > 0.001) return a.scoreCoverage - b.scoreCoverage;
-return a.scoreGaps - b.scoreGaps;
-});
-
-let coverageProp = sortedCoverage.find(p => !isAlreadySelected(p));
-if (coverageProp) {
-selected.push({
-rankTitle: 'Alternativa con mejor cobertura',
-proposal: coverageProp
-});
-}
-
-// Si aún nos faltan alternativas distintas, rellenar de la lista general
-if (selected.length < 3 && uniqueProposals.length > selected.length) {
-uniqueProposals.forEach(p => {
-if (selected.length < 3 && !isAlreadySelected(p)) {
-selected.push({
-rankTitle: `Alternativa de stock`,
-proposal: p
-});
-}
-});
-}
-
-return selected;
-}
-
-// Búsqueda de una fila
+// Búsqueda de Fila Horizontal de N columnas
 function findRowCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory) {
-const availableItems = inventory.filter(item => item.unidades > 0);
-const eligibleHeights = new Set();
-availableItems.forEach(item => {
-if (Math.abs(item.alto_cm - targetH) <= tolerance) eligibleHeights.add(item.alto_cm);
-if (allowRotation && Math.abs(item.ancho_cm - targetH) <= tolerance) eligibleHeights.add(item.ancho_cm);
-});
+    const availableItems = inventory.filter(item => item.unidades > 0);
+    const results = [];
 
-const results = [];
-const maxCols = Math.min(maxPanes, 6); // Límite de columnas: 6
+    // Filtrar vidrios que coincidan en alto dentro de la tolerancia
+    const eligibleHeights = new Set();
+    availableItems.forEach(item => {
+        if (Math.abs(item.alto_cm - targetH) <= tolerance) eligibleHeights.add(item.alto_cm);
+        if (allowRotation && Math.abs(item.ancho_cm - targetH) <= tolerance) eligibleHeights.add(item.ancho_cm);
+    });
 
-eligibleHeights.forEach(h => {
-const eligibleProducts = [];
-availableItems.forEach(item => {
-let matchesNormal = Math.abs(item.alto_cm - h) < 0.01;
-let matchesRotated = allowRotation && Math.abs(item.ancho_cm - h) < 0.01;
+    eligibleHeights.forEach(h => {
+        const candidates = [];
+        availableItems.forEach(item => {
+            let matchesNormal = Math.abs(item.alto_cm - h) < 0.01;
+            let matchesRotated = allowRotation && Math.abs(item.ancho_cm - h) < 0.01;
 
-if (matchesNormal) {
-eligibleProducts.push({
-product: item,
-width: item.ancho_cm,
-height: item.alto_cm,
-rotated: false,
-id: `${item.id}-N`
-});
-}
-if (matchesRotated && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
-eligibleProducts.push({
-product: item,
-width: item.alto_cm,
-height: item.ancho_cm,
-rotated: true,
-id: `${item.id}-R`
-});
-}
-});
+            if (matchesNormal) {
+                candidates.push({
+                    product: item,
+                    rotated: false,
+                    width: item.ancho_cm,
+                    height: item.alto_cm
+                });
+            }
+            if (matchesRotated && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
+                candidates.push({
+                    product: item,
+                    rotated: true,
+                    width: item.alto_cm,
+                    height: item.ancho_cm
+                });
+            }
+        });
 
-if (eligibleProducts.length === 0) return;
+        // Combinaciones de 2 paños iguales o distintos
+        for (let i = 0; i < candidates.length; i++) {
+            for (let j = i; j < candidates.length; j++) {
+                const c1 = candidates[i];
+                const c2 = candidates[j];
 
-function dfs(index, currentCombo, currentSum, productUsage) {
-const diff = currentSum - targetW;
-if (Math.abs(diff) <= tolerance && currentCombo.length >= 1 && currentCombo.length <= maxCols) {
-results.push({
-type: 'row',
-rows: [[...currentCombo]],
-totalWidth: currentSum,
-totalHeight: h,
-widthDiff: diff,
-heightDiff: h - targetH,
-panes: [...currentCombo]
-});
-}
+                if (c1.product.id === c2.product.id && c1.product.unidades < 2) continue;
 
-if (currentCombo.length >= maxCols || currentSum > targetW + tolerance) {
-return;
-}
+                const comboW = c1.width + c2.width;
+                if (Math.abs(comboW - targetW) <= tolerance && 2 <= maxPanes) {
+                    results.push({
+                        totalWidth: comboW,
+                        totalHeight: h,
+                        widthDiff: comboW - targetW,
+                        heightDiff: h - targetH,
+                        panes: [c1, c2]
+                    });
+                }
 
-for (let i = index; i < eligibleProducts.length; i++) {
-const ep = eligibleProducts[i];
-const pId = ep.product.id;
-const used = productUsage[pId] || 0;
+                // 3 paños
+                if (maxPanes >= 3) {
+                    for (let k = j; k < candidates.length; k++) {
+                        const c3 = candidates[k];
+                        const reqQty = {};
+                        [c1, c2, c3].forEach(c => reqQty[c.product.id] = (reqQty[c.product.id] || 0) + 1);
 
-if (used < ep.product.unidades) {
-productUsage[pId] = used + 1;
-currentCombo.push(ep);
-dfs(i, currentCombo, currentSum + ep.width, productUsage);
-currentCombo.pop();
-productUsage[pId] = used;
-}
-}
-}
+                        let stockOk = true;
+                        Object.keys(reqQty).forEach(pid => {
+                            const prod = inventory.find(p => p.id === pid);
+                            if (prod && prod.unidades < reqQty[pid]) stockOk = false;
+                        });
 
-dfs(0, [], 0, {});
-});
+                        if (!stockOk) continue;
 
-return results;
-}
+                        const combo3W = c1.width + c2.width + c3.width;
+                        if (Math.abs(combo3W - targetW) <= tolerance) {
+                            results.push({
+                                totalWidth: combo3W,
+                                totalHeight: h,
+                                widthDiff: combo3W - targetW,
+                                heightDiff: h - targetH,
+                                panes: [c1, c2, c3]
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    });
 
-// Búsqueda de una columna (pila única)
-function findColumnCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory) {
-const availableItems = inventory.filter(item => item.unidades > 0);
-const eligibleWidths = new Set();
-availableItems.forEach(item => {
-if (Math.abs(item.ancho_cm - targetW) <= tolerance) eligibleWidths.add(item.ancho_cm);
-if (allowRotation && Math.abs(item.alto_cm - targetW) <= tolerance) eligibleWidths.add(item.alto_cm);
-});
-
-const results = [];
-const maxRows = Math.min(maxPanes, 3); // Límite de filas: 3
-
-eligibleWidths.forEach(w => {
-const eligibleProducts = [];
-availableItems.forEach(item => {
-let matchesNormal = Math.abs(item.ancho_cm - w) < 0.01;
-let matchesRotated = allowRotation && Math.abs(item.alto_cm - w) < 0.01;
-
-if (matchesNormal) {
-eligibleProducts.push({
-product: item,
-width: item.ancho_cm,
-height: item.alto_cm,
-rotated: false,
-id: `${item.id}-N`
-});
-}
-if (matchesRotated && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
-eligibleProducts.push({
-product: item,
-width: item.alto_cm,
-height: item.ancho_cm,
-rotated: true,
-id: `${item.id}-R`
-});
-}
-});
-
-if (eligibleProducts.length === 0) return;
-
-function dfs(index, currentCombo, currentSum, productUsage) {
-const diff = currentSum - targetH;
-if (Math.abs(diff) <= tolerance && currentCombo.length >= 1 && currentCombo.length <= maxRows) {
-const rowsStruct = currentCombo.map(pane => [pane]);
-results.push({
-type: 'column',
-rows: rowsStruct,
-totalWidth: w,
-totalHeight: currentSum,
-widthDiff: w - targetW,
-heightDiff: diff,
-panes: [...currentCombo]
-});
+    return results;
 }
 
-if (currentCombo.length >= maxRows || currentSum > targetH + tolerance) {
-return;
-}
+// Búsqueda de Dos Filas Verticales
+function findTwoRowCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory) {
+    const availableItems = inventory.filter(item => item.unidades > 0);
+    const results = [];
 
-for (let i = index; i < eligibleProducts.length; i++) {
-const ep = eligibleProducts[i];
-const pId = ep.product.id;
-const used = productUsage[pId] || 0;
+    const eligibleWidths = new Set();
+    availableItems.forEach(item => {
+        if (Math.abs(item.ancho_cm - targetW) <= tolerance) eligibleWidths.add(item.ancho_cm);
+        if (allowRotation && Math.abs(item.alto_cm - targetW) <= tolerance) eligibleWidths.add(item.alto_cm);
+    });
 
-if (used < ep.product.unidades) {
-productUsage[pId] = used + 1;
-currentCombo.push(ep);
-dfs(i, currentCombo, currentSum + ep.height, productUsage);
-currentCombo.pop();
-productUsage[pId] = used;
-}
-}
-}
+    eligibleWidths.forEach(w => {
+        const candidates = [];
+        availableItems.forEach(item => {
+            let matchesNormal = Math.abs(item.ancho_cm - w) < 0.01;
+            let matchesRotated = allowRotation && Math.abs(item.alto_cm - w) < 0.01;
 
-dfs(0, [], 0, {});
-});
+            if (matchesNormal) {
+                candidates.push({
+                    product: item,
+                    rotated: false,
+                    width: item.ancho_cm,
+                    height: item.alto_cm
+                });
+            }
+            if (matchesRotated && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
+                candidates.push({
+                    product: item,
+                    rotated: true,
+                    width: item.alto_cm,
+                    height: item.ancho_cm
+                });
+            }
+        });
 
-return results;
-}
+        // Apilado de 2 paños verticales
+        for (let i = 0; i < candidates.length; i++) {
+            for (let j = i; j < candidates.length; j++) {
+                const c1 = candidates[i];
+                const c2 = candidates[j];
 
-// Búsqueda de dos filas
-function findTwoRowsCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory) {
-const availableItems = inventory.filter(item => item.unidades > 0);
-const uniqueHeights = new Set();
-availableItems.forEach(item => {
-uniqueHeights.add(item.alto_cm);
-if (allowRotation) uniqueHeights.add(item.ancho_cm);
-});
+                if (c1.product.id === c2.product.id && c1.product.unidades < 2) continue;
 
-const heightsList = Array.from(uniqueHeights);
-const validPairs = [];
+                const comboH = c1.height + c2.height;
+                if (Math.abs(comboH - targetH) <= tolerance && 2 <= maxPanes) {
+                    results.push({
+                        totalWidth: w,
+                        totalHeight: comboH,
+                        widthDiff: w - targetW,
+                        heightDiff: comboH - targetH,
+                        panes: [c1, c2]
+                    });
+                }
+            }
+        }
+    });
 
-for (let i = 0; i < heightsList.length; i++) {
-for (let j = i; j < heightsList.length; j++) {
-const h1 = heightsList[i];
-const h2 = heightsList[j];
-if (Math.abs(h1 + h2 - targetH) <= tolerance) {
-validPairs.push([h1, h2]);
-if (h1 !== h2) validPairs.push([h2, h1]);
-}
-}
-}
+    // Apilado de 2 filas con 2 columnas (4 paños en cuadrícula 2x2)
+    if (maxPanes >= 4) {
+        const uniqueHeights = new Set();
+        availableItems.forEach(item => {
+            uniqueHeights.add(item.alto_cm);
+            if (allowRotation) uniqueHeights.add(item.ancho_cm);
+        });
 
-const results = [];
-const widthCombosByHeight = {};
+        uniqueHeights.forEach(h1 => {
+            uniqueHeights.forEach(h2 => {
+                if (Math.abs((h1 + h2) - targetH) <= tolerance) {
+                    // Buscar candidatos para fila 1 y fila 2
+                    const row1Combos = findRowCombinations(targetW, h1, 2, allowRotation, tolerance, inventory);
+                    const row2Combos = findRowCombinations(targetW, h2, 2, allowRotation, tolerance, inventory);
 
-function getWidthCombosForHeight(h) {
-if (widthCombosByHeight[h] !== undefined) return widthCombosByHeight[h];
+                    if (row1Combos.length > 0 && row2Combos.length > 0) {
+                        const r1 = row1Combos[0];
+                        const r2 = row2Combos[0];
+                        const panesList = [...r1.panes, ...r2.panes];
 
-const eligibleProducts = [];
-availableItems.forEach(item => {
-let matchesNormal = Math.abs(item.alto_cm - h) < 0.01;
-let matchesRotated = allowRotation && Math.abs(item.ancho_cm - h) < 0.01;
+                        if (panesList.length <= maxPanes) {
+                            results.push({
+                                totalWidth: Math.max(r1.totalWidth, r2.totalWidth),
+                                totalHeight: h1 + h2,
+                                widthDiff: Math.max(r1.totalWidth, r2.totalWidth) - targetW,
+                                heightDiff: (h1 + h2) - targetH,
+                                panes: panesList
+                            });
+                        }
+                    }
+                }
+            });
+        });
+    }
 
-if (matchesNormal) {
-eligibleProducts.push({
-product: item,
-width: item.ancho_cm,
-height: item.alto_cm,
-rotated: false,
-id: `${item.id}-N`
-});
-}
-if (matchesRotated && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
-eligibleProducts.push({
-product: item,
-width: item.alto_cm,
-height: item.ancho_cm,
-rotated: true,
-id: `${item.id}-R`
-});
-}
-});
-
-if (eligibleProducts.length === 0) {
-widthCombosByHeight[h] = [];
-return [];
-}
-
-const combos = [];
-const maxCols = Math.min(maxPanes - 1, 6); // Reservar al menos 1 panel para la otra fila
-
-function dfs(index, currentCombo, currentSum, productUsage) {
-const diff = currentSum - targetW;
-if (Math.abs(diff) <= tolerance && currentCombo.length >= 1 && currentCombo.length <= maxCols) {
-combos.push({
-panes: [...currentCombo],
-width: currentSum,
-usage: { ...productUsage }
-});
-}
-
-if (currentCombo.length >= maxCols || currentSum > targetW + tolerance) {
-return;
-}
-
-for (let i = index; i < eligibleProducts.length; i++) {
-const ep = eligibleProducts[i];
-const pId = ep.product.id;
-const used = productUsage[pId] || 0;
-
-if (used < ep.product.unidades) {
-productUsage[pId] = used + 1;
-currentCombo.push(ep);
-dfs(i, currentCombo, currentSum + ep.width, productUsage);
-currentCombo.pop();
-productUsage[pId] = used;
-}
-}
-}
-
-dfs(0, [], 0, {});
-widthCombosByHeight[h] = combos;
-return combos;
-}
-
-validPairs.forEach(([h1, h2]) => {
-const combos1 = getWidthCombosForHeight(h1);
-const combos2 = getWidthCombosForHeight(h2);
-
-if (combos1.length === 0 || combos2.length === 0) return;
-
-combos1.forEach(c1 => {
-combos2.forEach(c2 => {
-const totalPanes = c1.panes.length + c2.panes.length;
-if (totalPanes > maxPanes) return;
-
-// Validar stock total sumando ambas filas
-let stockOk = true;
-const combinedUsage = {};
-
-for (const [pId, qty] of Object.entries(c1.usage)) {
-combinedUsage[pId] = (combinedUsage[pId] || 0) + qty;
-}
-for (const [pId, qty] of Object.entries(c2.usage)) {
-combinedUsage[pId] = (combinedUsage[pId] || 0) + qty;
-}
-
-for (const [pId, qty] of Object.entries(combinedUsage)) {
-const product = availableItems.find(p => p.id === pId);
-if (!product || qty > product.unidades) {
-stockOk = false;
-break;
-}
-}
-
-if (stockOk) {
-const panesList = [...c1.panes, ...c2.panes];
-results.push({
-type: 'two-rows',
-rows: [c1.panes, c2.panes],
-totalWidth: Math.max(c1.width, c2.width),
-totalHeight: h1 + h2,
-widthDiff: Math.max(c1.width, c2.width) - targetW,
-heightDiff: (h1 + h2) - targetH,
-panes: panesList
-});
-}
-});
-});
-});
-
-return results;
+    return results;
 }
 
 // Búsqueda de cuadrícula R x C
 function findGridCombinations(targetW, targetH, maxPanes, allowRotation, tolerance, inventory) {
-const availableItems = inventory.filter(item => item.unidades > 0);
-const results = [];
+    const availableItems = inventory.filter(item => item.unidades > 0);
+    const results = [];
 
-availableItems.forEach(item => {
-checkGrid(item, item.ancho_cm, item.alto_cm, false);
-if (allowRotation && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
-checkGrid(item, item.alto_cm, item.ancho_cm, true);
+    availableItems.forEach(item => {
+        checkGrid(item, item.ancho_cm, item.alto_cm, false);
+        if (allowRotation && Math.abs(item.ancho_cm - item.alto_cm) > 0.01) {
+            checkGrid(item, item.alto_cm, item.ancho_cm, true);
+        }
+    });
+
+    function checkGrid(item, w_p, h_p, rotated) {
+        for (let r = 1; r <= 3; r++) {
+            for (let c = 1; c <= 6; c++) {
+                const totalPanes = r * c;
+                if (totalPanes > maxPanes) continue;
+                if (totalPanes > item.unidades) continue;
+
+                const gridW = c * w_p;
+                const gridH = r * h_p;
+
+                if (Math.abs(gridW - targetW) <= tolerance && Math.abs(gridH - targetH) <= tolerance) {
+                    const rowsStruct = [];
+                    const paneObj = {
+                        product: item,
+                        rotated,
+                        width: w_p,
+                        height: h_p
+                    };
+                    const panesList = Array(totalPanes).fill(paneObj);
+
+                    results.push({
+                        type: 'grid',
+                        rows: rowsStruct,
+                        totalWidth: gridW,
+                        totalHeight: gridH,
+                        widthDiff: gridW - targetW,
+                        heightDiff: gridH - targetH,
+                        panes: panesList
+                    });
+                }
+            }
+        }
+    }
+
+    return results;
 }
-});
 
-function checkGrid(item, w_p, h_p, rotated) {
-// Límite de filas: 3, Límite de columnas: 6, Límite máx. de paneles: 8
-for (let r = 1; r <= 3; r++) {
-for (let c = 1; c <= 6; c++) {
-const totalPanes = r * c;
-if (totalPanes > maxPanes) continue;
-if (totalPanes > item.unidades) continue; 
-
-const gridW = c * w_p;
-const gridH = r * h_p;
-
-if (Math.abs(gridW - targetW) <= tolerance && Math.abs(gridH - targetH) <= tolerance) {
-const rowsStruct = [];
-const paneObj = {
-product: item,
-width: w_p,
-height: h_p,
-rotated: rotated,
-id: `${item.id}-${rotated ? 'R' : 'N'}`
+window.applyFallbackSetting = function(setting, value) {
+    if (setting === 'tolerance') {
+        const tSelect = document.getElementById('planner-tolerance');
+        if (tSelect) tSelect.value = value;
+    } else if (setting === 'panes') {
+        const pSelect = document.getElementById('planner-panes');
+        if (pSelect) pSelect.value = value;
+    }
+    const advOpts = document.getElementById('sizing-advanced-options');
+    if (advOpts) {
+        advOpts.style.display = 'block';
+        advOpts.open = true;
+    }
+    const searchBtn = document.getElementById('sizing-search-btn');
+    if (searchBtn) searchBtn.click();
 };
-
-for (let rowIdx = 0; rowIdx < r; rowIdx++) {
-const rowPanes = [];
-for (let colIdx = 0; colIdx < c; colIdx++) {
-rowPanes.push(paneObj);
-}
-rowsStruct.push(rowPanes);
-}
-
-const panesList = Array(totalPanes).fill(paneObj);
-
-results.push({
-type: 'grid',
-rows: rowsStruct,
-totalWidth: gridW,
-totalHeight: gridH,
-widthDiff: gridW - targetW,
-heightDiff: gridH - targetH,
-panes: panesList
-});
-}
-}
-}
-}
-
-return results;
-}
 
 // Renderizar propuestas en UI
 function renderPlannerProposals(alternatives, targetW, targetH, container) {
-if (alternatives.length === 0) {
-container.innerHTML = `
-           <div class="calc-no-results">
-               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                   <circle cx="12" cy="12" r="10"></circle>
-                   <line x1="15" y1="9" x2="9" y2="15"></line>
-                   <line x1="9" y1="9" x2="15" y2="15"></line>
-               </svg>
-               <h3>Sin combinaciones disponibles</h3>
-               <p>No encontramos una combinación cercana con el stock actual. Puedes revisar medidas similares o solicitar una cotización.</p>
-               <div class="calc-no-results-actions">
-                   <button onclick="quotePlannerFallback(${targetW}, ${targetH})" class="calc-btn" style="background-color: var(--color-olive); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer;">Cotizar</button>
-               </div>
-           </div>
-       `;
-return;
-}
+    if (alternatives.length === 0) {
+        container.innerHTML = `
+            <div class="calc-no-results" style="text-align: left; padding: 24px; background: #fdfcf9; border: 1.5px solid #e2e8f0; border-radius: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <h3 style="font-size: 1.15rem; margin: 0; color: var(--color-text-primary);">No encontramos combinaciones para ${targetW} × ${targetH} cm</h3>
+                </div>
+                <p style="font-size: 0.92rem; color: var(--color-text-muted); margin-bottom: 18px; line-height: 1.5;">
+                    Te sugerimos probar estas opciones para encontrar alternativas en stock:
+                </p>
+                <div class="fallback-suggestions-grid" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                    <button onclick="applyFallbackSetting('tolerance', '10')" class="fallback-action-btn" style="text-align: left; padding: 12px 16px; border: 1.5px solid var(--color-olive); border-radius: 10px; background: #ffffff; color: var(--color-olive); font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+                        🔍 1. Aumentar la diferencia máxima permitida (a 10 cm o más)
+                    </button>
+                    <button onclick="applyFallbackSetting('panes', 'all')" class="fallback-action-btn" style="text-align: left; padding: 12px 16px; border: 1.5px solid var(--color-olive); border-radius: 10px; background: #ffffff; color: var(--color-olive); font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+                        🧩 2. Permitir más termopaneles por espacio
+                    </button>
+                    <button onclick="switchSizingMode('individual'); runUnifiedSearch(${targetW}, ${targetH});" class="fallback-action-btn" style="text-align: left; padding: 12px 16px; border: 1.5px solid var(--color-olive); border-radius: 10px; background: #ffffff; color: var(--color-olive); font-weight: 700; cursor: pointer; transition: all 0.2s ease;">
+                        📐 3. Probar medidas individuales cercanas en stock
+                    </button>
+                </div>
+                <div style="padding-top: 15px; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                    <span style="font-size: 0.88rem; color: var(--color-text-muted);">¿Prefieres que busquemos una alternativa manualmente?</span>
+                    <button onclick="quotePlannerFallback(${targetW}, ${targetH})" class="calc-btn" style="background-color: var(--color-olive); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                        Consultar por WhatsApp
+                    </button>
+                </div>
+            </div>
+        `;
+        return;
+    }
 
-container.innerHTML = '';
+    container.innerHTML = '';
 
-// If target dimensions are small, suggest using the single-pane Calculator
-if (targetW < 160 && targetH < 220) {
-    const note = document.createElement('div');
-    note.className = 'planner-cross-ref-note';
-    note.innerHTML = `<span>💡 <strong>¿Buscas un solo panel?</strong> Para espacios más pequeños, la <a onclick="scrollToSection('calculator-section', 'flash-calc')">Calculadora de Vano</a> te muestra las medidas individuales en stock más similares.</span>`;
-    container.appendChild(note);
-}
+    if (targetW < 160 && targetH < 220) {
+        const note = document.createElement('div');
+        note.className = 'planner-cross-ref-note';
+        note.innerHTML = `<span>💡 <strong>¿Buscas un solo panel?</strong> Para espacios más pequeños, la <a onclick="scrollToSection('calculator-section', 'flash-calc')">Calculadora de Vano</a> te muestra las medidas individuales en stock más similares.</span>`;
+        container.appendChild(note);
+    }
 
-const grid = document.createElement('div');
-grid.className = 'planner-proposals-grid';
+    const grid = document.createElement('div');
+    grid.className = 'planner-proposals-grid';
 
-alternatives.forEach((alt) => {
-const prop = alt.proposal;
-const card = document.createElement('div');
-card.className = 'proposal-card';
-
-// Detalle de cantidades agrupadas
-const productCounts = {};
-prop.panes.forEach(pane => {
-const key = pane.product.id + (pane.rotated ? '_R' : '_N');
-if (!productCounts[key]) {
-productCounts[key] = {
-product: pane.product,
-width: pane.width,
-height: pane.height,
-rotated: pane.rotated,
-qty: 0
-};
-}
-productCounts[key].qty++;
-});
-
-let productsListHtml = '';
-Object.values(productCounts).forEach(item => {
-const rotText = item.rotated ? ' (Girado)' : '';
-productsListHtml += `
-               <li>
-                   <span>${item.qty} u × ${item.product.medida_cm}${rotText}</span>
-                   <strong>Stock: ${item.product.unidades} u</strong>
-               </li>
-           `;
-});
-
-const wDiffSymbol = prop.widthDiff >= 0 ? '+' : '';
-const hDiffSymbol = prop.heightDiff >= 0 ? '+' : '';
-
-const wDiffText = prop.widthDiff === 0 ? 'Exacto' : `${wDiffSymbol}${prop.widthDiff.toFixed(1)} cm`;
-const hDiffText = prop.heightDiff === 0 ? 'Exacto' : `${hDiffSymbol}${prop.heightDiff.toFixed(1)} cm`;
-
-const pricing = getCartPricing(prop.unitCount);
-const unitPriceText = `$${pricing.unitPrice.toLocaleString('es-CL')}`;
-const totalPriceText = `$${prop.totalPrice.toLocaleString('es-CL')}`;
-
-// Obtener etiqueta de tipo de distribución
-let layoutLabel = '';
-let layoutBreakdown = '';
-
-if (prop.type === 'row') {
-layoutLabel = 'Una fila horizontal';
-layoutBreakdown = `1 fila × ${prop.rows[0].length} columnas`;
-} else if (prop.type === 'column') {
-layoutLabel = 'Columna única';
-layoutBreakdown = `${prop.rows.length} filas × 1 columna`;
-} else if (prop.type === 'grid') {
-layoutLabel = 'Cuadrícula';
-layoutBreakdown = `${prop.rows.length} filas × ${prop.rows[0].length} columnas`;
-} else if (prop.type === 'two-rows') {
-const r1 = prop.rows[0];
-const r2 = prop.rows[1];
-if (r1.length === r2.length && r1.every((p, idx) => p.product.id === r2[idx].product.id)) {
-layoutLabel = 'Dos filas';
-} else {
-layoutLabel = 'Distribución combinada';
-}
-layoutBreakdown = `2 filas (Fila 1: ${r1.length} cols, Fila 2: ${r2.length} cols)`;
-}
-
-const svgHtml = generateProposalSvg(prop, targetW, targetH);
-const serializedProposal = encodeURIComponent(JSON.stringify(prop));
-
-card.innerHTML = `
-           <div class="proposal-header">
-               <span class="proposal-title">${alt.rankTitle}</span>
-               <span class="proposal-rank" style="background-color: ${alt.rankTitle.includes('general') ? 'var(--color-olive)' : '#64748b'};">${layoutLabel}</span>
-           </div>
-           
-           <div class="proposal-body">
-               <div class="proposal-info-panel">
-                   <ul class="proposal-info-list">
-                       <li>
-                           <span>Espacio requerido:</span>
-                           <strong>${targetW} × ${targetH} cm</strong>
-                       </li>
-                       <li>
-                           <span>Espacio cubierto:</span>
-                           <strong>${prop.totalWidth.toFixed(1)} × ${prop.totalHeight.toFixed(1)} cm</strong>
-                       </li>
-                       <li>
-                           <span>Diferencia en ancho:</span>
-                           <strong style="color: ${prop.widthDiff === 0 ? 'var(--color-olive)' : '#b45309'};">${wDiffText}</strong>
-                       </li>
-                       <li>
-                           <span>Diferencia en alto:</span>
-                           <strong style="color: ${prop.heightDiff === 0 ? 'var(--color-olive)' : '#b45309'};">${hDiffText}</strong>
-                       </li>
-                       <li>
-                           <span>Estructura de paños:</span>
-                           <strong>${layoutBreakdown}</strong>
-                       </li>
-                       <li>
-                           <span>Total cristales:</span>
-                           <strong>${prop.unitCount} paños</strong>
-                       </li>
-                       <li>
-                           <span>Superficie cubierta:</span>
-                           <strong>${prop.areaCovered.toFixed(2)} m²</strong>
-                       </li>
-                   </ul>
-                   
-                   <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.05);">
-                       <h4 style="font-size: 0.8rem; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 8px;">Detalle de cristales:</h4>
-                       <ul class="proposal-info-list" style="gap: 5px;">
-                           ${productsListHtml}
-                       </ul>
-                   </div>
-
-                   <div class="proposal-price-tag">
-                       <span style="font-size: 0.85rem; font-weight: 500; color: var(--color-text-muted);">Valor estimado:</span>
-                       <span>${totalPriceText} <span style="font-size: 0.75rem; font-weight: 500; color: var(--color-text-muted);">(${unitPriceText} c/u)</span></span>
-                   </div>
-               </div>
-
-               <div class="proposal-visualizer">
-                   <h4>Vista referencial de cobertura</h4>
-                   <div class="svg-viewport-wrapper">
-                       ${svgHtml}
-                   </div>
-                   
-                   <div class="svg-legend">
-                       <div class="legend-item">
-                           <span class="legend-color panel"></span>
-                           <span>Termopanel en stock</span>
-                       </div>
-                       <div class="legend-item">
-                           <span class="legend-color remaining"></span>
-                           <span>Espacio restante</span>
-                       </div>
-                       <div class="legend-item">
-                           <span class="legend-color line"></span>
-                           <span>Unión</span>
-                       </div>
-                   </div>
-               </div>
-           </div>
-
-           <div class="proposal-actions">
-               <button class="cta-button primary-hero-btn" onclick="addProposalToCart('${serializedProposal}')" style="margin: 0; padding: 12px 20px; font-size: 0.9rem; justify-content: center; width: 100%;">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
-                       <circle cx="9" cy="21" r="1"></circle>
-                       <circle cx="20" cy="21" r="1"></circle>
-                       <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                   </svg>
-                   Agregar propuesta al carro
-               </button>
-               <button class="cta-button" onclick="quoteProposalOnWhatsApp('${serializedProposal}')" style="margin: 0; padding: 12px 20px; font-size: 0.9rem; justify-content: center; width: 100%; background-color: var(--color-olive); color: white;">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
-                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                       <polyline points="22,6 12,13 2,6"></polyline>
-                   </svg>
-                   Consultar disponibilidad por WhatsApp
-               </button>
-           </div>
-       `;
-grid.appendChild(card);
-});
-
-container.appendChild(grid);
-}
-
-// Dibujar SVG dinámicamente v2
-function generateProposalSvg(prop, targetW, targetH) {
-const canvasW = 340;
-const canvasH = 220;
-const paddingX = 30;
-const paddingY = 30;
-
-const fitW = canvasW - (paddingX * 2);
-const fitH = canvasH - (paddingY * 2);
-
-const maxW = Math.max(targetW, prop.totalWidth);
-const maxH = Math.max(targetH, prop.totalHeight);
-
-const k_scale = Math.min(fitW / maxW, fitH / maxH);
-
-const outerW = targetW * k_scale;
-const outerH = targetH * k_scale;
-
-let svg = `<svg width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}" xmlns="http://www.w3.org/2000/svg">
-       <defs>
-           <pattern id="diagonalHatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
-               <line x1="0" y1="0" x2="0" y2="8" style="stroke:#e2e8f0; stroke-width:3" />
-           </pattern>
-       </defs>
-   `;
-
-// 1. Dibujar el vano total (con fondo de patrón rayado)
-svg += `
-       <!-- Vano total requerido -->
-       <rect x="${paddingX}" y="${paddingY}" width="${outerW}" height="${outerH}" fill="url(#diagonalHatch)" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4" />
-   `;
-
-// 2. Dibujar termopaneles propuestos
-const y_bottom = paddingY + outerH;
-const stackH_pixel = prop.totalHeight * k_scale;
-const y_top = y_bottom - stackH_pixel;
-
-if (prop.type === 'row') {
-let currentX = paddingX;
-prop.rows[0].forEach((pane, idx) => {
-const paneW = pane.width * k_scale;
-const paneH = pane.height * k_scale;
-const paneY = y_bottom - paneH;
-
-svg += `
-               <rect x="${currentX}" y="${paneY}" width="${paneW}" height="${paneH}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="3" />
-           `;
-
-const textX = currentX + (paneW / 2);
-const textY = paneY + (paneH / 2);
-drawPaneLabel(textX, textY, paneW, pane, idx + 1);
-
-if (idx > 0) {
-svg += `<line x1="${currentX}" y1="${y_top}" x2="${currentX}" y2="${y_bottom}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
-}
-currentX += paneW;
-});
-} 
-else if (prop.type === 'column') {
-let currentY = y_top;
-prop.rows.forEach((rowPanes, idx) => {
-const pane = rowPanes[0];
-const paneW = pane.width * k_scale;
-const paneH = pane.height * k_scale;
-
-svg += `
-               <rect x="${paddingX}" y="${currentY}" width="${paneW}" height="${paneH}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="3" />
-           `;
-
-const textX = paddingX + (paneW / 2);
-const textY = currentY + (paneH / 2);
-drawPaneLabel(textX, textY, paneW, pane, idx + 1);
-
-if (idx > 0) {
-svg += `<line x1="${paddingX}" y1="${currentY}" x2="${paddingX + paneW}" y2="${currentY}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
-}
-currentY += paneH;
-});
-}
-else if (prop.type === 'two-rows') {
-const h1 = prop.rows[0][0].height; 
-const h2 = prop.rows[1][0].height; 
-const h1_pixel = h1 * k_scale;
-const h2_pixel = h2 * k_scale;
-
-// Fila 1 (superior)
-let currentX1 = paddingX;
-prop.rows[0].forEach((pane, idx) => {
-const paneW = pane.width * k_scale;
-svg += `
-               <rect x="${currentX1}" y="${y_top}" width="${paneW}" height="${h1_pixel}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="3" />
-           `;
-drawPaneLabel(currentX1 + paneW/2, y_top + h1_pixel/2, paneW, pane, `1-${idx+1}`);
-if (idx > 0) {
-svg += `<line x1="${currentX1}" y1="${y_top}" x2="${currentX1}" y2="${y_top + h1_pixel}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
-}
-currentX1 += paneW;
-});
-
-// Fila 2 (inferior)
-let currentX2 = paddingX;
-const y2 = y_top + h1_pixel;
-prop.rows[1].forEach((pane, idx) => {
-const paneW = pane.width * k_scale;
-svg += `
-               <rect x="${currentX2}" y="${y2}" width="${paneW}" height="${h2_pixel}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="3" />
-           `;
-drawPaneLabel(currentX2 + paneW/2, y2 + h2_pixel/2, paneW, pane, `2-${idx+1}`);
-if (idx > 0) {
-svg += `<line x1="${currentX2}" y1="${y2}" x2="${currentX2}" y2="${y2 + h2_pixel}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
-}
-currentX2 += paneW;
-});
-
-// Unión horizontal entre filas
-svg += `<line x1="${paddingX}" y1="${y2}" x2="${paddingX + Math.max(currentX1, currentX2) - paddingX}" y2="${y2}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
-}
-else if (prop.type === 'grid') {
-const R = prop.rows.length;
-const C = prop.rows[0].length;
-const pane = prop.rows[0][0];
-const paneW = pane.width * k_scale;
-const paneH = pane.height * k_scale;
-
-for (let r = 0; r < R; r++) {
-const currentY = y_top + r * paneH;
-for (let c = 0; c < C; c++) {
-const currentX = paddingX + c * paneW;
-svg += `
-                   <rect x="${currentX}" y="${currentY}" width="${paneW}" height="${paneH}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="3" />
-               `;
-drawPaneLabel(currentX + paneW/2, currentY + paneH/2, paneW, pane, `${r+1}-${c+1}`);
-
-if (c > 0) {
-svg += `<line x1="${currentX}" y1="${currentY}" x2="${currentX}" y2="${currentY + paneH}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
-}
-}
-if (r > 0) {
-svg += `<line x1="${paddingX}" y1="${currentY}" x2="${paddingX + C * paneW}" y2="${currentY}" stroke="#334155" stroke-dasharray="2,2" stroke-width="1.2" />`;
-}
-}
-}
-
-function drawPaneLabel(x, y, paneW_pixel, pane, rank) {
-if (paneW_pixel > 35) {
-svg += `
-               <text x="${x}" y="${y - 4}" font-size="8" font-weight="700" fill="#0369a1" text-anchor="middle" dominant-baseline="middle">${pane.product.ancho_cm}×${pane.product.alto_cm}</text>
-               <text x="${x}" y="${y + 6}" font-size="7" font-weight="600" fill="#0284c7" text-anchor="middle" dominant-baseline="middle">cm${pane.rotated ? ' (G)' : ''}</text>
-           `;
-} else {
-svg += `
-               <text x="${x}" y="${y}" font-size="8" font-weight="700" fill="#0369a1" text-anchor="middle" dominant-baseline="middle">${rank}</text>
-           `;
-}
-}
-
-// 3. Dimensiones y acotaciones
-const labelW_X = paddingX + (outerW / 2);
-const labelW_Y = paddingY + outerH + 18;
-svg += `<text x="${labelW_X}" y="${labelW_Y}" font-size="9" font-weight="700" fill="#475569" text-anchor="middle">Vano: ${targetW} cm</text>`;
-
-const labelH_X = paddingX - 10;
-const labelH_Y = paddingY + (outerH / 2);
-svg += `<text x="${labelH_X}" y="${labelH_Y}" font-size="9" font-weight="700" fill="#475569" text-anchor="middle" transform="rotate(-90 ${labelH_X} ${labelH_Y})">Vano: ${targetH} cm</text>`;
-
-const covW_X = paddingX + ((prop.totalWidth * k_scale) / 2);
-const covW_Y = paddingY - 10;
-svg += `<text x="${covW_X}" y="${covW_Y}" font-size="9" font-weight="700" fill="#0284c7" text-anchor="middle">Cubierto: ${prop.totalWidth.toFixed(1)} cm</text>`;
-
-if (prop.totalWidth < targetW) {
-const remW = targetW - prop.totalWidth;
-const remW_pixel = remW * k_scale;
-const remX = paddingX + (prop.totalWidth * k_scale) + (remW_pixel / 2);
-const remY = paddingY + (outerH / 2);
-svg += `<text x="${remX}" y="${remY}" font-size="8" font-weight="700" fill="#64748b" text-anchor="middle" transform="rotate(-90 ${remX} ${remY})">Faltan ${remW.toFixed(1)} cm</text>`;
-}
-
-if (prop.totalHeight < targetH) {
-const remH = targetH - prop.totalHeight;
-const remH_pixel = remH * k_scale;
-const remX = paddingX + ((prop.totalWidth * k_scale) / 2);
-const remY = paddingY + (remH_pixel / 2);
-svg += `<text x="${remX}" y="${remY}" font-size="8" font-weight="700" fill="#64748b" text-anchor="middle">Faltan ${remH.toFixed(1)} cm de alto</text>`;
-}
-
-svg += `</svg>`;
-return svg;
-}
-
-// Agregar propuesta al carro de compras v2
-window.addProposalToCart = function(serializedProposal) {
-try {
-const prop = JSON.parse(decodeURIComponent(serializedProposal));
-
-const productCounts = {};
-prop.panes.forEach(pane => {
-const key = pane.product.id;
-if (!productCounts[key]) {
-productCounts[key] = {
-product: pane.product,
-qty: 0
-};
-}
-productCounts[key].qty++;
-});
-
-let addedCount = 0;
-let errors = [];
-
-Object.values(productCounts).forEach(item => {
-const p = item.product;
-const cartItem = appState.cart.find(ci => ci.id === p.id);
-const currentQtyInCart = cartItem ? cartItem.qty : 0;
-
-if (currentQtyInCart + item.qty > p.unidades) {
-errors.push(`Medida ${p.medida_cm}: No hay suficiente stock (En carro: ${currentQtyInCart}, Solicitado: +${item.qty}, Disponible: ${p.unidades}).`);
-} else {
-if (cartItem) {
-cartItem.qty += item.qty;
-} else {
-appState.cart.push({
-id: p.id,
-ancho_cm: p.ancho_cm,
-alto_cm: p.alto_cm,
-medida_cm: p.medida_cm,
-forma: p.forma,
-qty: item.qty,
-maxQty: p.unidades
-});
-}
-addedCount += item.qty;
-}
-});
-
-if (errors.length > 0) {
-alert(`Algunas medidas no se pudieron agregar por límite de stock:\n\n${errors.join('\n')}\n\nSe agregaron las demás unidades exitosamente.`);
-} else {
-alert(`¡Se agregaron con éxito las ${addedCount} unidades de la propuesta al carro de compras!`);
-}
-
-saveCart();
-updateCartUI();
-openCart(true);
-} catch (e) {
-console.error('Error al agregar propuesta al carro:', e);
-}
-};
-
-// Cotizar propuesta en WhatsApp v2
-window.quoteProposalOnWhatsApp = function(serializedProposal) {
-    try {
-        const prop = JSON.parse(decodeURIComponent(serializedProposal));
+    alternatives.forEach((alt) => {
+        const prop = alt.proposal;
+        const card = document.createElement('div');
+        card.className = 'proposal-card';
 
         const productCounts = {};
         prop.panes.forEach(pane => {
@@ -2290,15 +1733,296 @@ window.quoteProposalOnWhatsApp = function(serializedProposal) {
             productCounts[key].qty++;
         });
 
-        let itemsText = '';
+        let panesDetailHtml = '';
         Object.values(productCounts).forEach(item => {
-            const rotText = item.rotated ? ' (Girado)' : '';
-            itemsText += `- ${item.qty} u: ${item.product.ancho_cm}x${item.product.alto_cm}cm${rotText}\n`;
+            const rotBadge = item.rotated ? '<span class="rotated-tag">Girado</span>' : '';
+            panesDetailHtml += `
+            <div class="proposal-pane-item">
+                <span class="pane-qty">${item.qty}x</span>
+                <span class="pane-dim">${item.product.ancho_cm} × ${item.product.alto_cm} cm</span>
+                ${rotBadge}
+            </div>
+        `;
         });
 
-        const totalPriceText = `$${prop.totalPrice.toLocaleString('es-CL')}`;
+        const wDiffSymbol = prop.widthDiff >= 0 ? '+' : '';
+        const hDiffSymbol = prop.heightDiff >= 0 ? '+' : '';
+        const wDiffRounded = (Math.round(Math.abs(prop.widthDiff) * 10) / 10).toString().replace('.', ',');
+        const hDiffRounded = (Math.round(Math.abs(prop.heightDiff) * 10) / 10).toString().replace('.', ',');
 
-        const message = `Hola, cotización Planificador (${prop.totalWidth.toFixed(1)}x${prop.totalHeight.toFixed(1)} cm):\n${itemsText}Total: ${prop.unitCount} paños - ${totalPriceText}`;
+        const wDiffText = Math.abs(prop.widthDiff) < 0.01 ? 'Exacto' : `${wDiffSymbol}${wDiffRounded} cm`;
+        const hDiffText = Math.abs(prop.heightDiff) < 0.01 ? 'Exacto' : `${hDiffSymbol}${hDiffRounded} cm`;
+
+        const svgVisual = generateProposalSVG(prop, targetW, targetH);
+
+        const serializedProposal = encodeURIComponent(JSON.stringify(prop));
+
+        card.innerHTML = `
+        <div class="proposal-card-header">
+            <span class="proposal-badge">${prop.unitCount === 1 ? '1 paño único' : `${prop.unitCount} paños combinados`}</span>
+            <div class="proposal-price">$${prop.totalPrice.toLocaleString('es-CL')}</div>
+        </div>
+        
+        <div class="proposal-visual-container">
+            ${svgVisual}
+        </div>
+        
+        <div class="proposal-dimensions-summary">
+            <div class="dim-box">
+                <span class="dim-label">Ancho Cubierto</span>
+                <span class="dim-val">${prop.totalWidth.toFixed(1)} cm <small>(${wDiffText})</small></span>
+            </div>
+            <div class="dim-box">
+                <span class="dim-label">Alto Cubierto</span>
+                <span class="dim-val">${prop.totalHeight.toFixed(1)} cm <small>(${hDiffText})</small></span>
+            </div>
+        </div>
+
+        <div class="proposal-panes-list">
+            <div class="panes-list-title">Termopaneles utilizados:</div>
+            ${panesDetailHtml}
+        </div>
+        
+        <div class="proposal-actions" style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+            <button class="cta-button" onclick="quoteProposalOnWhatsApp('${serializedProposal}')" style="margin: 0; padding: 12px 20px; font-size: 0.9rem; justify-content: center; width: 100%; background-color: var(--color-olive); color: white;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 448 512" style="margin-right: 6px;">
+                    <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+                </svg>
+                Consultar disponibilidad por WhatsApp
+            </button>
+            <button class="cta-button secondary-btn" onclick="addProposalToCart('${serializedProposal}')" style="margin: 0; padding: 10px 16px; font-size: 0.85rem; justify-content: center; width: 100%;">
+                🛒 Añadir los ${prop.unitCount} paños al Carro
+            </button>
+        </div>
+    `;
+
+        grid.appendChild(card);
+    });
+
+    container.appendChild(grid);
+}
+
+// Generador de Diagrama 2D SVG para propuestas de cobertura
+function generateProposalSVG(prop, targetW, targetH) {
+    const maxCanvasW = 320;
+    const maxCanvasH = 180;
+    const paddingX = 35;
+    const paddingY = 25;
+
+    const availableW = maxCanvasW - (paddingX * 2);
+    const availableH = maxCanvasH - (paddingY * 2);
+
+    const scaleX = availableW / Math.max(targetW, prop.totalWidth);
+    const scaleY = availableH / Math.max(targetH, prop.totalHeight);
+    const k_scale = Math.min(scaleX, scaleY);
+
+    const outerW = targetW * k_scale;
+    const outerH = targetH * k_scale;
+
+    let svg = `<svg viewBox="0 0 ${maxCanvasW} ${maxCanvasH}" class="proposal-svg-diagram">`;
+
+    // 1. Marco exterior representando el vano del cliente
+    svg += `<rect x="${paddingX}" y="${paddingY}" width="${outerW}" height="${outerH}" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 3" rx="2" />`;
+
+    // Cotas exteriores del vano
+    svg += `<text x="${paddingX + (outerW / 2)}" y="${paddingY - 6}" font-size="9" font-weight="700" fill="#475569" text-anchor="middle">Ancho vano: ${targetW} cm</text>`;
+    svg += `<text x="${paddingX - 6}" y="${paddingY + (outerH / 2)}" font-size="9" font-weight="700" fill="#475569" text-anchor="middle" transform="rotate(-90 ${paddingX - 6} ${paddingY + (outerH / 2)})">Alto vano: ${targetH} cm</text>`;
+
+    // 2. Renderizar paños dentro del espacio
+    let currentX = paddingX;
+    let currentY = paddingY;
+
+    if (prop.type === 'single') {
+        const pane = prop.panes[0];
+        const pW = pane.width * k_scale;
+        const pH = pane.height * k_scale;
+
+        svg += `<rect x="${paddingX}" y="${paddingY}" width="${pW}" height="${pH}" fill="url(#paneGrad)" stroke="#0284c7" stroke-width="1.5" rx="2" />`;
+        svg += `<text x="${paddingX + (pW / 2)}" y="${paddingY + (pH / 2)}" font-size="10" font-weight="700" fill="#0369a1" text-anchor="middle" dominant-baseline="middle">${pane.product.ancho_cm}×${pane.product.alto_cm}</text>`;
+    } else if (prop.type === 'row') {
+        let posX = paddingX;
+        prop.panes.forEach(pane => {
+            const pW = pane.width * k_scale;
+            const pH = pane.height * k_scale;
+
+            svg += `<rect x="${posX}" y="${paddingY}" width="${pW}" height="${pH}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="2" opacity="0.9" />`;
+            svg += `<text x="${posX + (pW / 2)}" y="${paddingY + (pH / 2)}" font-size="9" font-weight="700" fill="#0369a1" text-anchor="middle" dominant-baseline="middle">${pane.product.ancho_cm}×${pane.product.alto_cm}</text>`;
+
+            posX += pW;
+        });
+    } else if (prop.type === 'two-rows') {
+        let posX = paddingX;
+        let posY = paddingY;
+
+        prop.panes.forEach(pane => {
+            const pW = pane.width * k_scale;
+            const pH = pane.height * k_scale;
+
+            if (posX + pW > paddingX + outerW + 1) {
+                posX = paddingX;
+                posY += pH;
+            }
+
+            svg += `<rect x="${posX}" y="${posY}" width="${pW}" height="${pH}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="2" opacity="0.9" />`;
+            svg += `<text x="${posX + (pW / 2)}" y="${posY + (pH / 2)}" font-size="9" font-weight="700" fill="#0369a1" text-anchor="middle" dominant-baseline="middle">${pane.product.ancho_cm}×${pane.product.alto_cm}</text>`;
+
+            posX += pW;
+        });
+    } else if (prop.type === 'grid') {
+        let posX = paddingX;
+        let posY = paddingY;
+
+        prop.panes.forEach(pane => {
+            const pW = pane.width * k_scale;
+            const pH = pane.height * k_scale;
+
+            if (posX + pW > paddingX + outerW + 0.5) {
+                posX = paddingX;
+                posY += pH;
+            }
+
+            svg += `<rect x="${posX}" y="${posY}" width="${pW}" height="${pH}" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="2" opacity="0.9" />`;
+            svg += `<text x="${posX + (pW / 2)}" y="${posY + (pH / 2)}" font-size="8" font-weight="700" fill="#0369a1" text-anchor="middle" dominant-baseline="middle">${pane.product.ancho_cm}×${pane.product.alto_cm}</text>`;
+
+            posX += pW;
+        });
+    }
+
+    // Indicador de holgura / espacio restante
+    if (prop.totalWidth < targetW) {
+        const remW = targetW - prop.totalWidth;
+        const remW_pixel = remW * k_scale;
+        const remX = paddingX + (prop.totalWidth * k_scale) + (remW_pixel / 2);
+        const remY = paddingY + (outerH / 2);
+        svg += `<text x="${remX}" y="${remY}" font-size="8" font-weight="700" fill="#64748b" text-anchor="middle" transform="rotate(-90 ${remX} ${remY})">Faltan ${remW.toFixed(1)} cm</text>`;
+    }
+
+    if (prop.totalHeight < targetH) {
+        const remH = targetH - prop.totalHeight;
+        const remH_pixel = remH * k_scale;
+        const remX = paddingX + ((prop.totalWidth * k_scale) / 2);
+        const remY = paddingY + (remH_pixel / 2);
+        svg += `<text x="${remX}" y="${remY}" font-size="8" font-weight="700" fill="#64748b" text-anchor="middle">Faltan ${remH.toFixed(1)} cm de alto</text>`;
+    }
+
+    svg += `</svg>`;
+    return svg;
+}
+
+// Agregar propuesta al carro de compras v2
+window.addProposalToCart = function(serializedProposal) {
+    try {
+        const prop = JSON.parse(decodeURIComponent(serializedProposal));
+
+        const productCounts = {};
+        prop.panes.forEach(pane => {
+            const key = pane.product.id;
+            if (!productCounts[key]) {
+                productCounts[key] = {
+                    product: pane.product,
+                    qty: 0
+                };
+            }
+            productCounts[key].qty++;
+        });
+
+        let addedCount = 0;
+        let errors = [];
+
+        Object.values(productCounts).forEach(item => {
+            const p = item.product;
+            const cartItem = appState.cart.find(ci => ci.id === p.id);
+            const currentQtyInCart = cartItem ? cartItem.qty : 0;
+
+            if (currentQtyInCart + item.qty > p.unidades) {
+                errors.push(`Medida ${p.medida_cm}: No hay suficiente stock (En carro: ${currentQtyInCart}, Solicitado: +${item.qty}, Disponible: ${p.unidades}).`);
+            } else {
+                if (cartItem) {
+                    cartItem.qty += item.qty;
+                } else {
+                    appState.cart.push({
+                        id: p.id,
+                        ancho_cm: p.ancho_cm,
+                        alto_cm: p.alto_cm,
+                        medida_cm: p.medida_cm,
+                        forma: p.forma,
+                        qty: item.qty,
+                        maxQty: p.unidades
+                    });
+                }
+                addedCount += item.qty;
+            }
+        });
+
+        if (errors.length > 0) {
+            alert(`Algunas medidas no se pudieron agregar por límite de stock:\n\n${errors.join('\n')}\n\nSe agregaron las demás unidades exitosamente.`);
+        } else {
+            alert(`¡Se agregaron con éxito las ${addedCount} unidades de la propuesta al carro de compras!`);
+        }
+
+        saveCart();
+        updateCartUI();
+        openCart(true);
+    } catch (e) {
+        console.error('Error al agregar propuesta al carro:', e);
+    }
+};
+
+// Cotizar propuesta en WhatsApp v2
+window.quoteProposalOnWhatsApp = function(serializedProposal) {
+    try {
+        const prop = JSON.parse(decodeURIComponent(serializedProposal));
+
+        const wInput = document.getElementById('sizing-width');
+        const hInput = document.getElementById('sizing-height');
+        const targetW = (wInput && wInput.value) ? wInput.value : (prop.totalWidth ? Math.round(prop.totalWidth) : '');
+        const targetH = (hInput && hInput.value) ? hInput.value : (prop.totalHeight ? Math.round(prop.totalHeight) : '');
+
+        const productCounts = {};
+        prop.panes.forEach(pane => {
+            const p = pane.product;
+            const key = p.id || `${p.ancho_cm}x${p.alto_cm}`;
+            if (!productCounts[key]) {
+                productCounts[key] = {
+                    product: p,
+                    qty: 0
+                };
+            }
+            productCounts[key].qty++;
+        });
+
+        const codeList = prop.panes.map(pane => pane.product.id ? pane.product.id : `${pane.product.ancho_cm}×${pane.product.alto_cm} cm`);
+        let formattedCodes = '';
+        if (codeList.length === 1) {
+            formattedCodes = codeList[0];
+        } else if (codeList.length === 2) {
+            formattedCodes = `${codeList[0]} y ${codeList[1]}`;
+        } else {
+            const lastCode = codeList[codeList.length - 1];
+            const leadingCodes = codeList.slice(0, codeList.length - 1).join(', ');
+            formattedCodes = `${leadingCodes} y ${lastCode}`;
+        }
+
+        const medidasSummary = Object.values(productCounts).map(item => 
+            `${item.product.ancho_cm} x ${item.product.alto_cm} cm (${item.qty} unidad${item.qty > 1 ? 'es' : ''})`
+        ).join(', ');
+
+        const totalPriceText = `$${prop.totalPrice.toLocaleString('es-CL')}`;
+        const countText = prop.unitCount === 1 ? '1 termopanel' : `${prop.unitCount} termopaneles`;
+
+        // Registrar cotización en Google Sheets
+        recordQuoteToGoogleSheets({
+            fecha: getChileDateTime(),
+            medidas: medidasSummary,
+            total: totalPriceText,
+            vendido: 'Pendiente'
+        });
+
+        const message = `Hola, quiero cotizar ${countText} para mi proyecto.
+Medida total del espacio: ${targetW} × ${targetH} cm.
+Alternativa seleccionada: ${formattedCodes}.
+Total estimado: ${totalPriceText}.
+Quisiera confirmar disponibilidad y coordinar retiro en El Monte.`;
 
         const encodedText = encodeURIComponent(message);
         const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
@@ -2309,14 +2033,32 @@ window.quoteProposalOnWhatsApp = function(serializedProposal) {
 };
 
 window.quoteCustomClosing = function(widthVal, heightVal) {
-    const message = `Hola, cotizar cierre de ${widthVal}x${heightVal} cm.`;
+    const medidasSummary = `Espacio vano ${widthVal} x ${heightVal} cm (Cierre especial)`;
+    recordQuoteToGoogleSheets({
+        fecha: getChileDateTime(),
+        medidas: medidasSummary,
+        total: 'Por cotizar',
+        vendido: 'Pendiente'
+    });
+
+    const message = `Hola, quiero cotizar termopaneles para cubrir un espacio de ${widthVal} × ${heightVal} cm.
+Quisiera consultar alternativas disponibles y coordinar retiro en El Monte.`;
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
     window.open(whatsappUrl, '_blank');
 };
 
 window.quotePlannerFallback = function(targetW, targetH) {
-    const message = `Hola, sin stock en Planificador para ${targetW}x${targetH} cm. ¿Alternativas?`;
+    const medidasSummary = `Espacio vano ${targetW} x ${targetH} cm (Consulta manual)`;
+    recordQuoteToGoogleSheets({
+        fecha: getChileDateTime(),
+        medidas: medidasSummary,
+        total: 'Por cotizar',
+        vendido: 'Pendiente'
+    });
+
+    const message = `Hola, quiero cotizar opciones para cubrir un espacio de ${targetW} × ${targetH} cm.
+Quisiera consultar combinaciones o alternativas en stock y coordinar retiro en El Monte.`;
     const encodedText = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodedText}`;
     window.open(whatsappUrl, '_blank');
