@@ -1097,7 +1097,10 @@ window.switchSizingMode = function(mode) {
         if (contextText) {
             contextText.textContent = "Ingresa la medida que necesitas. Buscaremos primero si existe un termopanel individual igual o parecido en stock.";
         }
-        if (advOpts) advOpts.style.display = 'none';
+        if (advOpts) {
+            advOpts.style.display = 'none';
+            advOpts.open = false;
+        }
         if (searchBtn) searchBtn.textContent = "Buscar Termopanel Individual";
     } else {
         if (cardInd) cardInd.classList.remove('active');
@@ -1105,7 +1108,10 @@ window.switchSizingMode = function(mode) {
         if (contextText) {
             contextText.textContent = "Ingresa el tamaño total del espacio que quieres cubrir. La herramienta buscará alternativas usando uno o varios termopaneles disponibles.";
         }
-        if (advOpts) advOpts.style.display = 'block';
+        if (advOpts) {
+            advOpts.style.display = 'block';
+            advOpts.open = true;
+        }
         if (searchBtn) searchBtn.textContent = "Planificar Vano Completo";
     }
 };
@@ -1303,47 +1309,6 @@ function renderSingleProductCard(product, wDiff, hDiff, container) {
     container.appendChild(card);
 }
 
-// Límite de la herramienta: Ancho máx: 600 cm, Alto máx: 300 cm
-if (widthVal > 600 || heightVal > 300) {
-resultsContainer.innerHTML = `
-               <div class="planner-limit-exceeded">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                       <line x1="12" y1="9" x2="12" y2="13"></line>
-                       <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                   </svg>
-                   <h3>Medidas superan el límite del stock estándar</h3>
-                   <p>Para espacios mayores o proyectos con varios paños, solicita una cotización y revisamos alternativas según el stock disponible.</p>
-                   <div class="planner-limit-exceeded-actions">
-                       <button onclick="quoteCustomClosing(${widthVal}, ${heightVal})" class="calc-btn" style="background-color: var(--color-olive); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer;">Cotizar</button>
-                   </div>
-               </div>
-           `;
-return;
-}
-
-// Show loading state
-resultsContainer.innerHTML = `
-           <div class="calc-placeholder">
-               <p>Calculando distribuciones referenciales en base a tu stock...</p>
-           </div>
-       `;
-
-setTimeout(() => {
-const alternatives = findCoverageCombinationsAdvanced(
-widthVal, 
-heightVal, 
-panesVal, 
-distVal, 
-priorityVal, 
-rotationVal, 
-toleranceVal, 
-appState.products
-);
-renderPlannerProposals(alternatives, widthVal, heightVal, resultsContainer);
-}, 100);
-});
-}
 
 // Algoritmo de Búsqueda Avanzado de Cobertura
 function findCoverageCombinationsAdvanced(targetW, targetH, maxPanesStr, distType, priority, allowRotationStr, tolerance, inventory) {
@@ -2353,7 +2318,7 @@ window.scrollToSection = function(id, flashClass) {
     if (id === 'calculator-section' || id === 'mode-individual') {
         if (window.switchSizingMode) window.switchSizingMode('individual');
         id = 'unified-sizing-section';
-    } else if (id === 'planner-section' || id === 'mode-vano' || id === 'tutorial-section') {
+    } else if (id === 'planner-section' || id === 'mode-vano') {
         if (window.switchSizingMode) window.switchSizingMode('vano');
         id = 'unified-sizing-section';
     }
