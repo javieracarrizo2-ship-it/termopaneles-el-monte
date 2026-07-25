@@ -7,7 +7,7 @@
 const CONFIG = {
     csvPath: 'inventario-termopaneles-landing.csv',
     googleSheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSeHty4SN7j5L3ypMmiOSSlGYGOnd_qkU8LTwRO1aC55yZXMzPxdIQJ4MRQ6auYdhxpoMuS1R9nj_Ft/pub?output=csv',
-    googleAppScriptUrl: '', // URL del Web App de Google Apps Script para registrar cotizaciones en la hoja de registro
+    googleAppScriptUrl: 'https://script.google.com/macros/s/AKfycbwVi-UdNmBaw8XCAhNiQaDpY_-siYKAgWjnGDDTACbcCTpq65Th0hrvTffYRH1dIZGi5A/exec', // Web App de Google Apps Script para registro de cotizaciones
     whatsappNumber: '56977445451', // Chilean business WhatsApp number (+56 9 ...)
     lowStockThreshold: 5
 };
