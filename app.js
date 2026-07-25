@@ -25,6 +25,18 @@ function getChileDateTime() {
     });
 }
 
+// Helper: Detectar tipo de dispositivo (Móvil, Tablet o Escritorio)
+function getDeviceType() {
+    const ua = navigator.userAgent;
+    if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+        return 'Tablet';
+    }
+    if (/Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/i.test(ua)) {
+        return 'Móvil (Celular)';
+    }
+    return 'Escritorio (Computador)';
+}
+
 // Function to register quote in Google Sheets via Google Apps Script Web App
 function recordQuoteToGoogleSheets(data) {
     if (!CONFIG.googleAppScriptUrl) {
@@ -37,7 +49,10 @@ function recordQuoteToGoogleSheets(data) {
             fecha: data.fecha || getChileDateTime(),
             medidas: data.medidas || '',
             total: data.total || '',
-            vendido: 'Pendiente'
+            vendido: 'Pendiente',
+            dispositivo: data.dispositivo || getDeviceType(),
+            herramienta: data.herramienta || 'General',
+            cantidadPanos: data.cantidadPanos || '1 unidad'
         });
 
         fetch(CONFIG.googleAppScriptUrl, {
@@ -613,7 +628,10 @@ window.buyProductDirectly = function(productId) {
         fecha: getChileDateTime(),
         medidas: medidasSummary,
         total: totalPriceText,
-        vendido: 'Pendiente'
+        vendido: 'Pendiente',
+        dispositivo: getDeviceType(),
+        herramienta: 'Buscador / Tarjeta de Producto',
+        cantidadPanos: `${qty} unidad${qty > 1 ? 'es' : ''}`
     });
 
     const message = `Hola, quiero cotizar ${countText} para mi proyecto.
@@ -1026,7 +1044,10 @@ function checkoutCart() {
         fecha: getChileDateTime(),
         medidas: medidasSummary,
         total: totalText,
-        vendido: 'Pendiente'
+        vendido: 'Pendiente',
+        dispositivo: getDeviceType(),
+        herramienta: 'Carrito de Compras',
+        cantidadPanos: `${totalUnidades} unidad${totalUnidades > 1 ? 'es' : ''}`
     });
 
     const itemsText = appState.cart.map((item, index) => {
@@ -2451,7 +2472,10 @@ window.quoteProposalOnWhatsApp = function(serializedProposal) {
             fecha: getChileDateTime(),
             medidas: medidasSummary,
             total: totalPriceText,
-            vendido: 'Pendiente'
+            vendido: 'Pendiente',
+            dispositivo: getDeviceType(),
+            herramienta: 'Planificador de Espacio',
+            cantidadPanos: `${prop.unitCount} unidad${prop.unitCount > 1 ? 'es' : ''}`
         });
 
         const message = `Hola, quiero cotizar ${countText} para mi proyecto.
@@ -2474,7 +2498,10 @@ window.quoteCustomClosing = function(widthVal, heightVal) {
         fecha: getChileDateTime(),
         medidas: medidasSummary,
         total: 'Por cotizar',
-        vendido: 'Pendiente'
+        vendido: 'Pendiente',
+        dispositivo: getDeviceType(),
+        herramienta: 'Cierre Especial',
+        cantidadPanos: 'Por definir'
     });
 
     const message = `Hola, quiero cotizar termopaneles para cubrir un espacio de ${widthVal} × ${heightVal} cm.
@@ -2490,7 +2517,10 @@ window.quotePlannerFallback = function(targetW, targetH) {
         fecha: getChileDateTime(),
         medidas: medidasSummary,
         total: 'Por cotizar',
-        vendido: 'Pendiente'
+        vendido: 'Pendiente',
+        dispositivo: getDeviceType(),
+        herramienta: 'Planificador (Consulta Especial)',
+        cantidadPanos: 'Por definir'
     });
 
     const message = `Hola, quiero cotizar opciones para cubrir un espacio de ${targetW} × ${targetH} cm.
