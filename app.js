@@ -37,6 +37,35 @@ function getDeviceType() {
     return 'Escritorio (Computador)';
 }
 
+// Helper: Limpiar flotantes eliminando imprecisiones tipo 0.952000000001 -> 0.952
+function roundFloat(val, decimals = 4) {
+    if (val === undefined || val === null || isNaN(val)) return val;
+    const num = typeof val === 'number' ? val : parseFloat(val.toString().replace(',', '.'));
+    if (isNaN(num)) return val;
+    return Number(Math.round(num + 'e' + decimals) + 'e-' + decimals);
+}
+
+// Helper: Formato de número en metros usando coma decimal (ej. 0.442 -> "0,442", 0.952000000001 -> "0,952")
+function formatMeterVal(val) {
+    if (val === undefined || val === null || isNaN(val)) return '';
+    const rounded = roundFloat(val, 4);
+    return rounded.toString().replace('.', ',');
+}
+
+// Helper: Formato de dimensión en metros (ej. "0,442 x 0,952 m")
+function formatMeterDimensions(ancho_m, alto_m) {
+    return `${formatMeterVal(ancho_m)} x ${formatMeterVal(alto_m)} m`;
+}
+
+// Helper: Limpiar string de medida_m si viene del CSV con imprecisiones decimales
+function cleanMedidaMString(str, fallbackAnchoM, fallbackAltoM) {
+    if (!str) return formatMeterDimensions(fallbackAnchoM, fallbackAltoM);
+    const cleaned = str.replace(/(\d+[\.,]\d+)/g, (match) => {
+        return formatMeterVal(match);
+    });
+    return cleaned.includes('m') ? cleaned : `${cleaned} m`;
+}
+
 // Function to register quote in Google Sheets via Google Apps Script Web App
 function recordQuoteToGoogleSheets(data) {
     if (!CONFIG.googleAppScriptUrl) {
@@ -70,6 +99,10 @@ function recordQuoteToGoogleSheets(data) {
     }
 }
 
+function getDefaultCatalogLimit() {
+    return (typeof window !== 'undefined' && window.innerWidth <= 768) ? 6 : 12;
+}
+
 // Application State
 let appState = {
     products: [],
@@ -80,7 +113,7 @@ let appState = {
     cart: [],
     maxCatalogWidth: 120,
     maxCatalogHeight: 220,
-    visibleCatalogLimit: 12
+    visibleCatalogLimit: getDefaultCatalogLimit()
 };
 
 // DOM Elements
@@ -272,48 +305,52 @@ if (isNaN(ancho_cm) || isNaN(alto_cm) || isNaN(unidades)) {
 return null; // Invalid entry
 }
 
-let ancho_m;
-if (row.ancho_m !== undefined && row.ancho_m !== null && row.ancho_m !== '') {
-ancho_m = parseFloat(row.ancho_m.toString().replace(',', '.'));
-} else {
-ancho_m = ancho_cm / 100;
-}
+    let ancho_m;
+    if (row.ancho_m !== undefined && row.ancho_m !== null && row.ancho_m !== '') {
+        ancho_m = parseFloat(row.ancho_m.toString().replace(',', '.'));
+    } else {
+        ancho_m = ancho_cm / 100;
+    }
+    ancho_m = roundFloat(ancho_m, 4);
 
-let alto_m;
-if (row.alto_m !== undefined && row.alto_m !== null && row.alto_m !== '') {
-alto_m = parseFloat(row.alto_m.toString().replace(',', '.'));
-} else {
-alto_m = alto_cm / 100;
-}
+    let alto_m;
+    if (row.alto_m !== undefined && row.alto_m !== null && row.alto_m !== '') {
+        alto_m = parseFloat(row.alto_m.toString().replace(',', '.'));
+    } else {
+        alto_m = alto_cm / 100;
+    }
+    alto_m = roundFloat(alto_m, 4);
 
-// Calculate Area for classification
-const area = ancho_m * alto_m;
+    // Calculate Area for classification
+    const area = roundFloat(ancho_m * alto_m, 4);
 
-// Categorize by Size: Chico (<0.5m2), Mediano (0.5m2 to 1.2m2), Grande (>1.2m2)
-let sizeCategory = 'chico';
-if (area > 1.2) {
-sizeCategory = 'grande';
-} else if (area >= 0.5) {
-sizeCategory = 'mediano';
-}
+    // Categorize by Size: Chico (<0.5m2), Mediano (0.5m2 to 1.2m2), Grande (>1.2m2)
+    let sizeCategory = 'chico';
+    if (area > 1.2) {
+        sizeCategory = 'grande';
+    } else if (area >= 0.5) {
+        sizeCategory = 'mediano';
+    }
 
-return {
-id: row.id || '',
-tipo: row.tipo || 'Fijo',
-ancho_cm,
-alto_cm,
-ancho_m,
-alto_m,
-unidades,
-estado: row.estado || (unidades <= CONFIG.lowStockThreshold ? 'Bajo stock' : 'Disponible'),
-medida_cm: row.medida_cm || `${ancho_cm} x ${alto_cm} cm`,
-medida_m: row.medida_m || `${ancho_m} x ${alto_m} m`,
-descripcion: row.descripcion || `Termopanel fijo ${ancho_cm} x ${alto_cm} cm`,
-rack: row.rack || '',
-area,
-sizeCategory,
-forma: (row.id === 'TPA014' || (row.descripcion && (row.descripcion.toLowerCase().includes('trapecio') || row.descripcion.toLowerCase().includes('inclinado')))) ? 'trapezoidal' : ((row.descripcion && row.descripcion.toLowerCase().includes('triang')) ? 'triangular' : 'rectangular')
-};
+    const medida_m = cleanMedidaMString(row.medida_m, ancho_m, alto_m);
+
+    return {
+        id: row.id || '',
+        tipo: row.tipo || 'Fijo',
+        ancho_cm: roundFloat(ancho_cm, 2),
+        alto_cm: roundFloat(alto_cm, 2),
+        ancho_m,
+        alto_m,
+        unidades,
+        estado: row.estado || (unidades <= CONFIG.lowStockThreshold ? 'Bajo stock' : 'Disponible'),
+        medida_cm: row.medida_cm || `${ancho_cm} x ${alto_cm} cm`,
+        medida_m,
+        descripcion: row.descripcion || `Termopanel fijo ${ancho_cm} x ${alto_cm} cm`,
+        rack: row.rack || '',
+        area,
+        sizeCategory,
+        forma: (row.id === 'TPA014' || (row.descripcion && (row.descripcion.toLowerCase().includes('trapecio') || row.descripcion.toLowerCase().includes('inclinado')))) ? 'trapezoidal' : ((row.descripcion && row.descripcion.toLowerCase().includes('triang')) ? 'triangular' : 'rectangular')
+    };
 } catch (e) {
 console.warn('Error al procesar fila del inventario:', row, e);
 return null;
@@ -341,7 +378,7 @@ if (medianoTab) medianoTab.querySelector('span').textContent = `(${counts.median
 if (grandeTab) grandeTab.querySelector('span').textContent = `(${counts.grande})`;
 }// Filter and Sort the product lists based on State
 function applyFiltersAndSort() {
-    appState.visibleCatalogLimit = 12; // Reset limit when filters change
+    appState.visibleCatalogLimit = getDefaultCatalogLimit(); // Reset limit when filters change
     let list = [...appState.products];
 
     // 1. Filter by category tab
@@ -404,7 +441,8 @@ function renderGrid() {
         return;
     }
 
-    const limit = appState.visibleCatalogLimit || 12;
+    const defaultLimit = getDefaultCatalogLimit();
+    const limit = appState.visibleCatalogLimit || defaultLimit;
     const productsToRender = appState.filteredProducts.slice(0, limit);
 
     productsToRender.forEach(product => {
@@ -504,11 +542,11 @@ function renderGrid() {
                ${product.ancho_cm} x ${product.alto_cm} <span>cm</span>
            </h3>
            
-           <div class="product-meters">${product.ancho_m} x ${product.alto_m} m</div>
+           <div class="product-meters">${product.medida_m}</div>
            
            <ul class="product-details-list">
                <li>
-                   <span class="detail-label">Disponibilidad</span>
+                   <span class="detail-label">Estado</span>
                    <span class="status-badge ${statusClass}">${statusText}</span>
                </li>
                <li>
@@ -540,21 +578,21 @@ function renderGrid() {
            </div>
            
            <div class="product-actions">
-                <button onclick="buyProductDirectly('${product.id}')" class="cta-button" id="btn-quote-${product.id}" style="background-color: var(--color-olive); color: white;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 448 512" style="margin-right: 8px;">
-                        <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+                 <button onclick="buyProductDirectly('${product.id}')" class="cta-button btn-quote-wa" id="btn-quote-${product.id}" style="background-color: var(--color-olive); color: white;">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                         <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984a9.96 9.96 0 0 0 1.333 4.993L2 22l5.233-1.237a9.96 9.96 0 0 0 4.779 1.22h.005c5.505 0 9.988-4.478 9.989-9.984 0-2.669-1.038-5.176-2.925-7.062A9.925 9.925 0 0 0 12.012 2zm5.727 14.123c-.237.666-1.385 1.282-1.921 1.332-.497.046-1.144.072-3.376-.851-2.857-1.181-4.7-4.084-4.843-4.275-.141-.192-1.157-1.541-1.157-2.937 0-1.396.733-2.081.993-2.364.26-.283.565-.353.754-.353.188 0 .376.002.541.01.176.008.413-.067.647.494.237.565.805 1.961.875 2.103.07.142.117.307.023.495-.094.188-.141.306-.282.471-.141.165-.297.369-.424.496-.142.141-.29.294-.125.576.165.282.733 1.21 1.572 1.957 1.08 0.961 1.99 1.258 2.272 1.399.282.141.447.118.612-.07.165-.188.706-.824.894-1.106.188-.282.376-.235.635-.141.26.094 1.647.776 1.93 0.917.282.141.471.212.541.33.07.118.07.682-.167 1.348z"/>
+                     </svg>
+                     Cotizar por WhatsApp
+                 </button>
+                <button class="cta-button add-to-cart-btn" onclick="addToCart('${product.id}')" id="btn-add-cart-${product.id}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
-                    Cotizar por WhatsApp
+                    Añadir al Carrito
                 </button>
-               <button class="cta-button add-to-cart-btn" onclick="addToCart('${product.id}')" id="btn-add-cart-${product.id}">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                       <line x1="12" y1="5" x2="12" y2="19"></line>
-                       <line x1="5" y1="12" x2="19" y2="12"></line>
-                   </svg>
-                   Añadir al Carrito
-               </button>
-           </div>
-       `;
+            </div>
+        `;
 
         DOM.productsGrid.appendChild(card);
     });
@@ -581,12 +619,11 @@ function renderGrid() {
         DOM.productsGrid.appendChild(loadMoreContainer);
 
         document.getElementById('load-more-catalog-btn').addEventListener('click', () => {
-            appState.visibleCatalogLimit = (appState.visibleCatalogLimit || 12) + 12;
+            const step = getDefaultCatalogLimit();
+            appState.visibleCatalogLimit = (appState.visibleCatalogLimit || step) + step;
             renderGrid();
         });
     }
-}
-});
 }
 
 // Helper functions for pricing and currency formatting
@@ -601,6 +638,15 @@ function getProductPrice(product) {
         return Number(product.precio);
     }
     return 25000;
+}
+
+function roundFloat(value, decimals) {
+    return Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
+}
+
+function cleanMedidaMString(str, w, h) {
+    if (str && str.includes('m')) return str;
+    return `${w.toString().replace('.', ',')} x ${h.toString().replace('.', ',')} m`;
 }
 
 function formatCLP(val) {
@@ -897,8 +943,8 @@ localStorage.setItem('termopaneles_cart', JSON.stringify(appState.cart));
 
 // Pricing rules by volume
 function getCartPricing(totalUnits) {
-let unitPrice = 25000;
-let priceLabel = '$25.000 c/u (Precio normal)';
+    let unitPrice = 25000;
+    let priceLabel = '$25.000 c/u';
 let totalEstimated = `$${(totalUnits * 25000).toLocaleString('es-CL')}`;
 let discountMsg = '';
 
@@ -2043,9 +2089,10 @@ productsListHtml += `
 
 const wDiffSymbol = prop.widthDiff >= 0 ? '+' : '';
 const hDiffSymbol = prop.heightDiff >= 0 ? '+' : '';
-
-const wDiffText = prop.widthDiff === 0 ? 'Exacto' : `${wDiffSymbol}${prop.widthDiff.toFixed(1)} cm`;
-const hDiffText = prop.heightDiff === 0 ? 'Exacto' : `${hDiffSymbol}${prop.heightDiff.toFixed(1)} cm`;
+const wDiffVal = roundFloat(Math.abs(prop.widthDiff), 1);
+const hDiffVal = roundFloat(Math.abs(prop.heightDiff), 1);
+const wDiffText = Math.abs(prop.widthDiff) < 0.01 ? 'Exacto' : `${wDiffSymbol}${wDiffVal.toString().replace('.', ',')} cm`;
+const hDiffText = Math.abs(prop.heightDiff) < 0.01 ? 'Exacto' : `${hDiffSymbol}${hDiffVal.toString().replace('.', ',')} cm`;
 
 const pricing = getCartPricing(prop.unitCount);
 const unitPriceText = `$${pricing.unitPrice.toLocaleString('es-CL')}`;
@@ -2093,7 +2140,7 @@ card.innerHTML = `
                        </li>
                        <li>
                            <span>Espacio cubierto:</span>
-                           <strong>${prop.totalWidth.toFixed(1)} × ${prop.totalHeight.toFixed(1)} cm</strong>
+                           <strong>${roundFloat(prop.totalWidth, 1).toString().replace('.', ',')} × ${roundFloat(prop.totalHeight, 1).toString().replace('.', ',')} cm</strong>
                        </li>
                        <li>
                            <span>Diferencia en ancho:</span>

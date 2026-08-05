@@ -907,6 +907,12 @@ header {
     gap: 24px;
 }
 
+@media (max-width: 640px) {
+    .products-grid {
+        gap: 16px;
+    }
+}
+
 @media (min-width: 640px) {
     .products-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -931,6 +937,12 @@ header {
     position: relative;
     transition: var(--transition-smooth);
     overflow: hidden;
+}
+
+@media (max-width: 640px) {
+    .product-card {
+        padding: 16px;
+    }
 }
 
 .product-card:hover {
@@ -1038,6 +1050,8 @@ header {
 .product-details-list li {
     display: flex;
     justify-content: space-between;
+    align-items: center;
+    gap: 8px;
     padding: 6px 0;
     border-bottom: 1px dashed rgba(0,0,0,0.05);
 }
@@ -1062,6 +1076,20 @@ header {
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+    text-align: center;
+}
+
+@media (max-width: 640px) {
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+    }
 }
 
 .status-badge.available {
@@ -1662,6 +1690,23 @@ footer {
 .cart-checkout-btn {
     margin-top: 0;
     width: 100%;
+    background-color: var(--color-olive) !important;
+    color: #ffffff !important;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.cart-checkout-btn:hover {
+    background-color: var(--color-olive-dark) !important;
+}
+
+.cart-checkout-btn svg {
+    fill: #ffffff !important;
+    color: #ffffff !important;
+    flex-shrink: 0;
 }
 
 /* ==========================================================================
@@ -3119,6 +3164,19 @@ footer {
     .product-details-list li {
         font-size: 0.75rem !important;
         padding-bottom: 3px !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        gap: 4px !important;
+    }
+    
+    .status-badge {
+        font-size: 0.65rem !important;
+        padding: 3px 6px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+        letter-spacing: 0px !important;
+        line-height: 1.1 !important;
     }
     
     .product-card-qty-row {

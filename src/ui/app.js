@@ -37,6 +37,39 @@ function getDeviceType() {
     return 'Escritorio (Computador)';
 }
 
+// Helper: Limpiar flotantes eliminando imprecisiones tipo 0.952000000001 -> 0.952
+function roundFloat(val, decimals = 4) {
+    if (val === undefined || val === null || isNaN(val)) return val;
+    const num = typeof val === 'number' ? val : parseFloat(val.toString().replace(',', '.'));
+    if (isNaN(num)) return val;
+    return Number(Math.round(num + 'e' + decimals) + 'e-' + decimals);
+}
+
+// Helper: Formato de número en metros usando coma decimal (ej. 0.442 -> "0,442", 0.952000000001 -> "0,952")
+function formatMeterVal(val) {
+    if (val === undefined || val === null || isNaN(val)) return '';
+    const rounded = roundFloat(val, 4);
+    return rounded.toString().replace('.', ',');
+}
+
+// Helper: Formato de dimensión en metros (ej. "0,442 x 0,952 m")
+function formatMeterDimensions(ancho_m, alto_m) {
+    return `${formatMeterVal(ancho_m)} x ${formatMeterVal(alto_m)} m`;
+}
+
+// Helper: Limpiar string de medida_m si viene del CSV con imprecisiones decimales
+function cleanMedidaMString(str, fallbackAnchoM, fallbackAltoM) {
+    if (!str) return formatMeterDimensions(fallbackAnchoM, fallbackAltoM);
+    const cleaned = str.replace(/(\d+[\.,]\d+)/g, (match) => {
+        return formatMeterVal(match);
+    });
+    return cleaned.includes('m') ? cleaned : `${cleaned} m`;
+}
+
+function getDefaultCatalogLimit() {
+    return (typeof window !== 'undefined' && window.innerWidth <= 768) ? 6 : 12;
+}
+
 // Function to register quote in Google Sheets via Google Apps Script Web App
 function recordQuoteToGoogleSheets(data) {
     if (!CONFIG.googleAppScriptUrl) {
@@ -80,7 +113,7 @@ let appState = {
     cart: [],
     maxCatalogWidth: 120,
     maxCatalogHeight: 220,
-    visibleCatalogLimit: 12
+    visibleCatalogLimit: getDefaultCatalogLimit()
 };
 
 // DOM Elements
@@ -264,56 +297,60 @@ return result;
 // Convert CSV String row to parsed Product object
 function processProductRow(row) {
 try {
-const ancho_cm = parseFloat(row.ancho_cm);
-const alto_cm = parseFloat(row.alto_cm);
-const unidades = parseInt(row.unidades, 10);
+    const ancho_cm = parseFloat(row.ancho_cm);
+    const alto_cm = parseFloat(row.alto_cm);
+    const unidades = parseInt(row.unidades, 10);
 
-if (isNaN(ancho_cm) || isNaN(alto_cm) || isNaN(unidades)) {
-return null; // Invalid entry
-}
+    if (isNaN(ancho_cm) || isNaN(alto_cm) || isNaN(unidades)) {
+        return null; // Invalid entry
+    }
 
-let ancho_m;
-if (row.ancho_m !== undefined && row.ancho_m !== null && row.ancho_m !== '') {
-ancho_m = parseFloat(row.ancho_m.toString().replace(',', '.'));
-} else {
-ancho_m = ancho_cm / 100;
-}
+    let ancho_m;
+    if (row.ancho_m !== undefined && row.ancho_m !== null && row.ancho_m !== '') {
+        ancho_m = parseFloat(row.ancho_m.toString().replace(',', '.'));
+    } else {
+        ancho_m = ancho_cm / 100;
+    }
+    ancho_m = roundFloat(ancho_m, 4);
 
-let alto_m;
-if (row.alto_m !== undefined && row.alto_m !== null && row.alto_m !== '') {
-alto_m = parseFloat(row.alto_m.toString().replace(',', '.'));
-} else {
-alto_m = alto_cm / 100;
-}
+    let alto_m;
+    if (row.alto_m !== undefined && row.alto_m !== null && row.alto_m !== '') {
+        alto_m = parseFloat(row.alto_m.toString().replace(',', '.'));
+    } else {
+        alto_m = alto_cm / 100;
+    }
+    alto_m = roundFloat(alto_m, 4);
 
-// Calculate Area for classification
-const area = ancho_m * alto_m;
+    // Calculate Area for classification
+    const area = roundFloat(ancho_m * alto_m, 4);
 
-// Categorize by Size: Chico (<0.5m2), Mediano (0.5m2 to 1.2m2), Grande (>1.2m2)
-let sizeCategory = 'chico';
-if (area > 1.2) {
-sizeCategory = 'grande';
-} else if (area >= 0.5) {
-sizeCategory = 'mediano';
-}
+    // Categorize by Size: Chico (<0.5m2), Mediano (0.5m2 to 1.2m2), Grande (>1.2m2)
+    let sizeCategory = 'chico';
+    if (area > 1.2) {
+        sizeCategory = 'grande';
+    } else if (area >= 0.5) {
+        sizeCategory = 'mediano';
+    }
 
-return {
-id: row.id || '',
-tipo: row.tipo || 'Fijo',
-ancho_cm,
-alto_cm,
-ancho_m,
-alto_m,
-unidades,
-estado: row.estado || (unidades <= CONFIG.lowStockThreshold ? 'Bajo stock' : 'Disponible'),
-medida_cm: row.medida_cm || `${ancho_cm} x ${alto_cm} cm`,
-medida_m: row.medida_m || `${ancho_m} x ${alto_m} m`,
-descripcion: row.descripcion || `Termopanel fijo ${ancho_cm} x ${alto_cm} cm`,
-rack: row.rack || '',
-area,
-sizeCategory,
-forma: (row.id === 'TPA014' || (row.descripcion && (row.descripcion.toLowerCase().includes('trapecio') || row.descripcion.toLowerCase().includes('inclinado')))) ? 'trapezoidal' : ((row.descripcion && row.descripcion.toLowerCase().includes('triang')) ? 'triangular' : 'rectangular')
-};
+    const medida_m = cleanMedidaMString(row.medida_m, ancho_m, alto_m);
+
+    return {
+        id: row.id || '',
+        tipo: row.tipo || 'Fijo',
+        ancho_cm: roundFloat(ancho_cm, 2),
+        alto_cm: roundFloat(alto_cm, 2),
+        ancho_m,
+        alto_m,
+        unidades,
+        estado: row.estado || (unidades <= CONFIG.lowStockThreshold ? 'Bajo stock' : 'Disponible'),
+        medida_cm: row.medida_cm || `${ancho_cm} x ${alto_cm} cm`,
+        medida_m,
+        descripcion: row.descripcion || `Termopanel fijo ${ancho_cm} x ${alto_cm} cm`,
+        rack: row.rack || '',
+        area,
+        sizeCategory,
+        forma: (row.id === 'TPA014' || (row.descripcion && (row.descripcion.toLowerCase().includes('trapecio') || row.descripcion.toLowerCase().includes('inclinado')))) ? 'trapezoidal' : ((row.descripcion && row.descripcion.toLowerCase().includes('triang')) ? 'triangular' : 'rectangular')
+    };
 } catch (e) {
 console.warn('Error al procesar fila del inventario:', row, e);
 return null;
@@ -341,7 +378,7 @@ if (medianoTab) medianoTab.querySelector('span').textContent = `(${counts.median
 if (grandeTab) grandeTab.querySelector('span').textContent = `(${counts.grande})`;
 }// Filter and Sort the product lists based on State
 function applyFiltersAndSort() {
-    appState.visibleCatalogLimit = 12; // Reset limit when filters change
+    appState.visibleCatalogLimit = getDefaultCatalogLimit(); // Reset limit when filters change
     let list = [...appState.products];
 
     // 1. Filter by category tab
@@ -404,7 +441,8 @@ function renderGrid() {
         return;
     }
 
-    const limit = appState.visibleCatalogLimit || 12;
+    const defaultLimit = getDefaultCatalogLimit();
+    const limit = appState.visibleCatalogLimit || defaultLimit;
     const productsToRender = appState.filteredProducts.slice(0, limit);
 
     productsToRender.forEach(product => {
@@ -504,11 +542,11 @@ function renderGrid() {
                ${product.ancho_cm} x ${product.alto_cm} <span>cm</span>
            </h3>
            
-           <div class="product-meters">${product.ancho_m} x ${product.alto_m} m</div>
+           <div class="product-meters">${formatMeterDimensions(product.ancho_m, product.alto_m)}</div>
            
            <ul class="product-details-list">
                <li>
-                   <span class="detail-label">Disponibilidad</span>
+                   <span class="detail-label">Estado</span>
                    <span class="status-badge ${statusClass}">${statusText}</span>
                </li>
                <li>
@@ -581,7 +619,8 @@ function renderGrid() {
         DOM.productsGrid.appendChild(loadMoreContainer);
 
         document.getElementById('load-more-catalog-btn').addEventListener('click', () => {
-            appState.visibleCatalogLimit = (appState.visibleCatalogLimit || 12) + 12;
+            const step = getDefaultCatalogLimit();
+            appState.visibleCatalogLimit = (appState.visibleCatalogLimit || step) + step;
             renderGrid();
         });
     }
